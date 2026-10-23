@@ -1,0 +1,27 @@
+## Interface: 30300
+## Title: Modos
+## Notes: Tu configuración PvE y PvP (binds, barras, addons y perfiles) con un clic, por personaje.
+## Author: Nahuel
+## Version: 1.0.15
+## SavedVariables: ModosDB
+
+Estilo.lua
+Aspecto.lua
+Nucleo.lua
+Addons.lua
+Presets.lua
+PresetPvE.lua
+Perfiles.lua
+ArenaGladius.lua
+Placas.lua
+Ventanas.lua
+Listo.lua
+Interfaz.lua
+CDs.lua
+CellMerfin.lua
+PisosWA.lua
+Rol.lua
+Barras.lua
+Auras.lua
+AurasDatos.lua
+Instalar.lua

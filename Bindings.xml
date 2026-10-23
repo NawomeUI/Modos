@@ -1,0 +1,29 @@
+<Bindings>
+	<Binding name="MODOS_ALTERNAR" header="MODOS">Modos_Alternar()</Binding>
+	<Binding name="MODOS_PVE">Modos_Pasar("PvE")</Binding>
+	<Binding name="MODOS_PVP">Modos_Pasar("PvP")</Binding>
+	<Binding name="CLICK ModosBarraExtraBoton1:LeftButton" header="MODOSBARRA">
+	</Binding>
+	<Binding name="CLICK ModosBarraExtraBoton2:LeftButton">
+	</Binding>
+	<Binding name="CLICK ModosBarraExtraBoton3:LeftButton">
+	</Binding>
+	<Binding name="CLICK ModosBarraExtraBoton4:LeftButton">
+	</Binding>
+	<Binding name="CLICK ModosBarraExtraBoton5:LeftButton">
+	</Binding>
+	<Binding name="CLICK ModosBarraExtraBoton6:LeftButton">
+	</Binding>
+	<Binding name="CLICK ModosBarraExtraBoton7:LeftButton">
+	</Binding>
+	<Binding name="CLICK ModosBarraExtraBoton8:LeftButton">
+	</Binding>
+	<Binding name="CLICK ModosBarraExtraBoton9:LeftButton">
+	</Binding>
+	<Binding name="CLICK ModosBarraExtraBoton10:LeftButton">
+	</Binding>
+	<Binding name="CLICK ModosBarraExtraBoton11:LeftButton">
+	</Binding>
+	<Binding name="CLICK ModosBarraExtraBoton12:LeftButton">
+	</Binding>
+</Bindings>
