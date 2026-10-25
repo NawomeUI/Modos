@@ -439,6 +439,8 @@ PR.PARTES = {
     { id = "barras3", v = 2, modos = { PvE = true, PvP = true }, bt = { "ActionBars" }, soloEscondidas = true },
     -- (1.0.26) el foco de PvE más grande y con retrato
     { id = "foco", v = 1, modos = { PvE = true }, elv = "foco" },
+    -- (1.0.33) las auras del objetivo de PvE más grandes y los buffs de un enemigo a la vista
+    { id = "objetivo", v = 1, modos = { PvE = true }, elv = "objetivo" },
 }
 -- (1.0.24) MinimapButtonFrame como lo puso él: los botones en una sola columna
 PR.MBF = { columns_or_rows = 1, sort_by_rows = false }
@@ -571,6 +573,7 @@ PR.TOOLTIP_LUGAR = { PvE = "TOPLEFT,ElvUIParent,TOPLEFT,4,-262", PvP = "TOPLEFT,
 -- retrato de 53, foco, objetivo del objetivo y mascota igual, casteos y auras del
 -- objetivo también. En tu marco tu nombre (arriba a la izquierda) y tu recurso
 -- (maná, energía, furia o poder rúnico) sobre su barra.
+local PR_AURA_OBJETIVO = 26
 PR.UF_AJUSTES = { units = {
     player = { width = 217, height = 53, portrait = { width = 53 },
                power = { enable = true, detachFromFrame = false, height = 10 },
@@ -579,10 +582,14 @@ PR.UF_AJUSTES = { units = {
     -- los buffs y tus debuffs iban los dos arriba a la derecha del objetivo: en un amigo
     -- con buffs y debuffs se encimaban. Ahora tus debuffs van arriba de los buffs (sin
     -- buffs, en su lugar)
+    -- (1.0.33) las auras del objetivo más grandes (pidió, 25/10: "se ven muy chiquitas"):
+    -- de 18 a 26 (8 por fila ocupan 201 de los 217 del marco). Y los buffs de un enemigo
+    -- a la vista (Merfin solo mostraba los de un amigo): ahí se marcan los de Magia
+    -- (Disipables.lua)
     target = { width = 217, height = 53, portrait = { width = 53 }, castbar = { width = 164, height = 16 },
                smartAuraPosition = "FLUID_DEBUFFS_ON_BUFFS",
-               buffs = { sizeOverride = 18 },
-               debuffs = { enable = true, sizeOverride = 18,
+               buffs = { sizeOverride = PR_AURA_OBJETIVO, priority = "Blacklist,Personal,nonPersonal" },
+               debuffs = { enable = true, sizeOverride = PR_AURA_OBJETIVO,
         priority = "Blacklist,Personal,Friendly:RaidDebuffs,Friendly:CCDebuffs,Friendly:Dispellable,Friendly:notCastByUnit,Friendly:CastByNPC" } },
     -- (1.0.26) el foco más grande y con retrato (lo pidió, 25/10: "muy chiquito y sin
     -- marco/retrato"): 160x36 con retrato de 36, sin el número de recurso (se encimaba
@@ -604,6 +611,11 @@ PR.AJUSTES_ELV = {
     pve1 = { PvE = { unitframe = PR.UF_AJUSTES, nameplates = { units = { ENEMY_NPC = PR.PLACAS_NPC } } } },
     pve2 = { PvE = { unitframe = PR.UF_AJUSTES } },          -- (1.0.13) marcos más chicos, nombre y recurso
     foco = { PvE = { unitframe = { units = { focus = PR.UF_AJUSTES.units.focus } } } },   -- (1.0.26)
+    -- (1.0.33) solo las auras del objetivo (tamaño y los buffs de un enemigo)
+    objetivo = { PvE = { unitframe = { units = { target = {
+        buffs = { sizeOverride = PR.UF_AJUSTES.units.target.buffs.sizeOverride,
+                  priority = PR.UF_AJUSTES.units.target.buffs.priority },
+        debuffs = { sizeOverride = PR.UF_AJUSTES.units.target.debuffs.sizeOverride } } } } } },
     -- (1.0.13) sin los totems de ElvUI (PvE ya los tenía apagados) ni la experiencia de la mascota
     sueltas = {
         PvE = { general = { totems = { enable = false } }, databars = { petExperience = { enable = false } } },
