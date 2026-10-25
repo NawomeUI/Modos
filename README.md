@@ -34,7 +34,7 @@ Con las barras escondidas (Bartender o Blizzard) queda una a la vista en el bord
 
 ### Antes de armar Mis CDs: primero tus binds
 
-Mis CDs muestra cada hechizo con su bind, y el bind lo saca del botón de la barra donde está ese hechizo. Así que primero poné tus hechizos en las barras y tus binds, y después elegí Mis CDs (`/modos cds`).
+Mis CDs muestra cada hechizo con su bind, y el bind lo saca del botón de la barra donde está ese hechizo. Así que primero poné tus hechizos en las barras y tus binds, y después elegí Mis CDs (`/modos cds`). Los hechizos de tu mascota (de cualquier clase) aparecen en la lista como "Mascota: ..." mientras la tengas afuera, con el bind de la barra de la mascota.
 
 Si tus barras están escondidas, `/modos barras ver` las pone todas a la vista (y se pueden tocar) para acomodar hechizos y binds. Cuando termines, `/modos barras esconder` las deja como estaban. También con el botón "Ver todas para bindear" de `/modos barras`.
 
@@ -48,7 +48,7 @@ Si tus barras están escondidas, `/modos barras ver` las pone todas a la vista (
 | `/modos barras ver` | Todas las barras a la vista, para poner binds |
 | `/modos barras esconder` | Las deja como estaban |
 | `/modos rol` | Rol de PvE del talento en uso |
-| `/modos cds` | Qué hechizos y abalorios ves en Mis CDs |
+| `/modos cds` | Qué hechizos, hechizos de tu mascota y abalorios ves en Mis CDs |
 | `/modos cds guardar <nombre>` | Guarda tu lista de Mis CDs con un nombre (como ABS) |
 | `/modos cds cargar <nombre>` | La vuelve a poner (sirve en una macro) |
 | `/modos cds perfiles` | Los perfiles de Mis CDs de tu clase |

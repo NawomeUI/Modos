@@ -71,7 +71,10 @@ local function elegidos(m)
     return d and d.lista
 end
 
--- todo lo que se puede elegir: los dos abalorios y los hechizos que no son pasivos
+-- todo lo que se puede elegir: los dos abalorios, los hechizos que no son pasivos
+-- y (1.0.32) los de tu mascota, de cualquier clase (Call of the Wild, Spell Lock,
+-- Gnaw, Freeze...): salen del libro de la mascota que tengas afuera ("pet"), así
+-- que aparecen con ella y se van si la guardás o sacás otra que no los tiene
 function CD.disponibles()
     local l, visto = {}, {}
     for t = 1, (GetNumSpellTabs and GetNumSpellTabs() or 0) do
@@ -81,9 +84,20 @@ function CD.disponibles()
             local pasivo = IsPassiveSpell and IsPassiveSpell(i, "spell")
             if nombre and not pasivo and not visto[nombre] then
                 visto[nombre] = true
-                l[#l + 1] = { clave = "s:" .. nombre, nombre = nombre, indice = i,
+                l[#l + 1] = { clave = "s:" .. nombre, nombre = nombre, indice = i, libro = "spell",
                               icono = GetSpellTexture and GetSpellTexture(i, "spell") }
             end
+        end
+    end
+    local deMascota = HasPetSpells and HasPetSpells() or 0
+    local vistoM = {}
+    for i = 1, tonumber(deMascota) or 0 do
+        local nombre = GetSpellName(i, "pet")
+        local pasivo = IsPassiveSpell and IsPassiveSpell(i, "pet")
+        if nombre and not pasivo and not vistoM[nombre] then
+            vistoM[nombre] = true
+            l[#l + 1] = { clave = "p:" .. nombre, nombre = nombre, etiqueta = "Mascota: " .. nombre, indice = i,
+                          libro = "pet", icono = GetSpellTexture and GetSpellTexture(i, "pet") }
         end
     end
     for n, ranura in ipairs({ 13, 14 }) do
@@ -116,7 +130,19 @@ local function teclaDeRanura(slot)
         if slot >= b[1] and slot < b[1] + 12 then return GetBindingKey(b[2] .. (slot - b[1] + 1)) end
     end
 end
+-- (1.0.32) los de la mascota van en la barra de la mascota (10 botones)
+local function teclaMascota(x)
+    if not (GetPetActionInfo and GetBindingKey) then return nil end
+    for i = 1, 10 do
+        local nombre, _, _, esFicha = GetPetActionInfo(i)
+        if nombre and not esFicha and nombre == x.nombre then
+            local k = GetBindingKey("BONUSACTIONBUTTON" .. i) or GetBindingKey("CLICK BT4PetButton" .. i .. ":LeftButton")
+            if k then return corta(k) end
+        end
+    end
+end
 function CD.tecla(x)
+    if x.libro == "pet" then return teclaMascota(x) end
     if not GetActionInfo then return nil end
     local item = x.ranura and GetInventoryItemID and GetInventoryItemID("player", x.ranura)
     for slot = 1, 120 do
@@ -185,7 +211,8 @@ function CD.lista(m)
             local x = o[i] and porClave[o[i]]
             if x and CD.esta(x.clave, m) then
                 l[#l + 1] = { clave = x.clave, nombre = x.nombre, indice = x.indice, ranura = x.ranura, casilla = i,
-                              tipo = x.ranura and "ranura" or "hechizo", tecla = CD.tecla(x), icono = x.icono }
+                              tipo = x.ranura and "ranura" or (x.libro == "pet" and "mascota" or "hechizo"),
+                              libro = x.libro, tecla = CD.tecla(x), icono = x.icono }
             end
         end
     end
@@ -219,25 +246,58 @@ function ModosMisCDsUso(x)
         if id and IsUsableItem then usable = IsUsableItem(id) and true or false end
         if id and hayObjetivo and IsItemInRange then lejos = IsItemInRange(id, "target") == 0 end
     elseif x.indice then
+        local libro = x.libro or "spell"
         if IsUsableSpell then
-            local u, m = IsUsableSpell(x.indice, "spell")
+            local u, m = IsUsableSpell(x.indice, libro)
             usable = u and true or false
             sinMana = (not u) and m and true or false
         end
-        if hayObjetivo and IsSpellInRange then lejos = IsSpellInRange(x.indice, "spell", "target") == 0 end
+        if hayObjetivo and IsSpellInRange then lejos = IsSpellInRange(x.indice, libro, "target") == 0 end
     end
     return lejos and true or false, sinMana, (not usable) and not sinMana
+end
+
+-- (1.0.32) la recarga y el ícono de uno de la lista, sea hechizo tuyo, de la
+-- mascota o abalorio. Lo usan las auras de Mis CDs (así un tipo nuevo no pide
+-- cambiar las auras). Devuelve inicio, duración, prendido, ícono.
+function ModosMisCDsCD(x)
+    if type(x) ~= "table" then return 0, 0, 1, nil end
+    if x.tipo == "ranura" then
+        local a, b, c = GetInventoryItemCooldown("player", x.ranura)
+        return a, b, c, GetInventoryItemTexture("player", x.ranura)
+    end
+    local libro = x.libro or "spell"
+    if not x.indice then return 0, 0, 1, x.icono end
+    local a, b, c = GetSpellCooldown(x.indice, libro)
+    return a, b, c, (GetSpellTexture and GetSpellTexture(x.indice, libro)) or x.icono
 end
 
 -- el rango cambia al moverte y no hay evento para eso: con objetivo, cada 0,2 s se
 -- les avisa a las auras de Mis CDs (como hacen las barras de acción)
 CD.CADA = 0.2
+-- (1.0.32) cuándo termina la primera recarga de la mascota de la lista: al terminar
+-- no llega ningún evento, así que el reloj les avisa a las auras en ese momento
+function CD.calcularFinMascota()
+    local fin, ahora = nil, GetTime and GetTime() or 0
+    for _, x in ipairs(NS.pj and CD.lista() or {}) do
+        if x.libro == "pet" and x.indice and GetSpellCooldown then
+            local a, b, c = GetSpellCooldown(x.indice, "pet")
+            if c == 1 and b and b > 1.6 and a and a + b > ahora and (not fin or a + b < fin) then fin = a + b end
+        end
+    end
+    CD.finMascota = fin
+    return fin
+end
 local reloj = CreateFrame("Frame")
 local espera = 0
 reloj:SetScript("OnUpdate", function(_, dt)
     espera = espera - (dt or 0)
     if espera > 0 then return end
     espera = CD.CADA
+    if CD.finMascota and GetTime and GetTime() >= CD.finMascota then
+        CD.calcularFinMascota()
+        if WeakAuras and WeakAuras.ScanEvents then pcall(WeakAuras.ScanEvents, "MODOS_MISCDS_USO") end
+    end
     if not (WeakAuras and WeakAuras.ScanEvents and UnitExists and UnitExists("target")) then return end
     local l = NS.pj and ModosMisCDs(CD.modo())
     if l and #l > 0 then pcall(WeakAuras.ScanEvents, "MODOS_MISCDS_USO") end
@@ -245,10 +305,23 @@ end)
 CD.reloj = reloj
 
 -- cambió el libro, las barras, los binds o lo que tenés puesto: se arma de nuevo
+-- (1.0.32) y la mascota: la sacás, la guardás, cambiás de mascota o de su barra.
+-- Su recarga (PET_BAR_UPDATE_COOLDOWN) solo vuelve a mirar los íconos
 local ev = CreateFrame("Frame")
 for _, e in ipairs({ "SPELLS_CHANGED", "ACTIONBAR_SLOT_CHANGED", "UPDATE_BINDINGS", "PLAYER_EQUIPMENT_CHANGED",
-                     "PLAYER_ENTERING_WORLD" }) do ev:RegisterEvent(e) end
-ev:SetScript("OnEvent", function() avisar() end)
+                     "PLAYER_ENTERING_WORLD", "UNIT_PET", "PET_BAR_UPDATE", "PET_BAR_UPDATE_COOLDOWN" }) do
+    ev:RegisterEvent(e)
+end
+ev:SetScript("OnEvent", function(_, event, unidad)
+    if event == "UNIT_PET" and unidad ~= "player" then return end
+    if event == "PET_BAR_UPDATE_COOLDOWN" then
+        CD.calcularFinMascota()
+        if WeakAuras and WeakAuras.ScanEvents then pcall(WeakAuras.ScanEvents, "MODOS_MISCDS_USO") end
+        return
+    end
+    avisar()
+    if (event == "UNIT_PET" or event == "PET_BAR_UPDATE") and CD.refrescar then CD.refrescar() end
+end)
 
 -- ------------------------------------------------------------ perfiles (como ABS)
 -- ModosDB.cdsPerfiles[clase][nombre en minúscula] = { nombre, lista, orden, cuando }
@@ -463,7 +536,7 @@ local function refrescar()
         c.x = x
         if x then
             c.icono:SetTexture(x.icono)
-            c.texto:SetText(x.nombre)
+            c.texto:SetText(x.etiqueta or x.nombre)
             c:SetChecked(CD.esta(x.clave))
             c:Show(); c.icono:Show(); c.texto:Show()
         else

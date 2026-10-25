@@ -165,8 +165,12 @@ function AU.paquetesDe(clase)
     if not D then return l end
     for _, x in ipairs(D.PvE or {}) do l[#l + 1] = x end
     if clase and D.clases and D.clases[clase] then
+        -- (1.0.32) las que arma Modos (cazador, paladín, pícaro) tienen versión: se
+        -- actualizan solas y quedan donde las tenías
+        local v = D.claseVersion and D.claseVersion[clase]
         l[#l + 1] = { nombre = "la de tu clase", uid = D.claseUid and D.claseUid[clase],
-                      id = D.claseId and D.claseId[clase], texto = D.clases[clase], clase = true }
+                      id = D.claseId and D.claseId[clase], texto = D.clases[clase], clase = true,
+                      version = v, modos = v and true or nil, lugar = v and true or nil }
     end
     for _, x in ipairs(D.PvP or {}) do l[#l + 1] = x end
     -- (1.0.29) las de Modos para tu clase (el rastreo del cazador)
@@ -284,6 +288,16 @@ local function reemplazar(ds, idViejo, t, uids, lugar)
         end
     end
     if pcall(AU.poner, ds, t, uids) then
+        -- (1.0.32) las nuevas vienen de fábrica: los arreglos de Modos (arreglarModos)
+        -- se les vuelven a hacer
+        local hechos = type(ModosDB) == "table" and ModosDB.auras and ModosDB.auras.arreglados
+        if hechos then
+            local nuevas = { t.d }
+            for _, x in ipairs(type(t.c) == "table" and t.c or {}) do nuevas[#nuevas + 1] = x end
+            for _, x in ipairs(nuevas) do
+                if type(x) == "table" and type(x.uid) == "string" then hechos[x.uid] = nil end
+            end
+        end
         if lugar then
             for _, d in pairs(ds) do
                 local p = type(d) == "table" and type(d.uid) == "string" and donde[d.uid]
