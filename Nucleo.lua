@@ -28,7 +28,7 @@
 local ADDON, NS = ...
 NS = NS or {}
 
-NS.VERSION = "1.0.15"
+NS.VERSION = "1.0.25"
 NS.MODOS = { "PvE", "PvP" }
 
 local DESDE_POSESION, HASTA_POSESION, ULTIMO = 121, 132, 144
@@ -1447,7 +1447,11 @@ SlashCmdList["MODOS"] = function(msg)
             decir("Aspecto de Bypass (bordes oscuros y minimapa) "..(si and "prendido" or "apagado")..". Toma efecto al recargar (/reload).")
         end
     elseif cmd == "barras" then
-        if NS.barras then NS.barras.preguntar() end
+        -- (1.0.24) /modos barras ver: todas a la vista para binds. esconder: como estaban
+        if NS.barras and (arg == "ver" or arg == "mostrar" or arg == "bind" or arg == "binds") then NS.barras.verTodas(true)
+        elseif NS.barras and (arg == "esconder" or arg == "ocultar") then
+            if not NS.barras.verTodas(false) then decir("Barras: ya estaban como las dejaste.") end
+        elseif NS.barras then NS.barras.preguntar() end
     elseif cmd == "instalar" or cmd == "asistente" then
         if NS.instalar then NS.instalar.abrir() end
     elseif cmd == "escala" then
@@ -1471,7 +1475,9 @@ SlashCmdList["MODOS"] = function(msg)
             end
         end
     elseif cmd == "cds" or cmd == "cd" then
-        if NS.abrirCDs then NS.abrirCDs() end
+        -- (1.0.22) con guardar, cargar, borrar o perfiles: los perfiles (el nombre como lo escribiste)
+        if NS.cds and NS.cds.comando then NS.cds.comando((msg or ""):match("^%s*%S+%s*(.-)%s*$"))
+        elseif NS.abrirCDs then NS.abrirCDs() end
     elseif cmd == "rol" then
         -- rol de PvE del talento en uso (sin nada: pregunta)
         local rol = (arg == "tank" or arg == "tanque") and "Tank" or (arg == "dps" and "DPS")
@@ -1482,7 +1488,7 @@ SlashCmdList["MODOS"] = function(msg)
     elseif cmd == "ayuda" then
         decir("/modos abre la ventana. /modos pve y /modos pvp cambian de modo. /modos alternar pasa al otro.")
         decir("/modos anterior vuelve a la versión anterior del modo en uso. /modos barrita la muestra u oculta. /modos estado resume lo guardado.")
-        decir("/modos cds elige qué hechizos y abalorios ves al medio (aura Mis CDs). /modos addons elige qué addons van en cada modo. /modos barras elige barras con Bartender o de Blizzard, a la vista o escondidas. /modos instalar abre el asistente de primeros pasos (addons, modo, barras y rol). /modos auras muestra qué WeakAuras van con cada modo (se instalan solas, también la de tu clase). /modos auras reinstalar vuelve a poner las que borraste. /modos escala deja libre (o vuelve a fijar) la escala de la interfaz. /modos rol tank, /modos rol dps o /modos rol heal elige el rol de PvE del talento en uso (sin nada: pregunta).")
+        decir("/modos cds elige qué hechizos y abalorios ves al medio (aura Mis CDs). /modos cds guardar <nombre> y /modos cds cargar <nombre> guardan y ponen perfiles de Mis CDs (como ABS). /modos addons elige qué addons van en cada modo. /modos barras elige barras con Bartender o de Blizzard, a la vista o escondidas. /modos barras ver pone todas a la vista para poner binds (/modos barras esconder las deja como estaban). /modos instalar abre el asistente de primeros pasos (addons, modo, barras y rol). /modos auras muestra qué WeakAuras van con cada modo (se instalan solas, también la de tu clase). /modos auras reinstalar vuelve a poner las que borraste. /modos escala deja libre (o vuelve a fijar) la escala de la interfaz. /modos rol tank, /modos rol dps o /modos rol heal elige el rol de PvE del talento en uso (sin nada: pregunta).")
         decir("/modos listo muestra lo que te falta antes del pull (frasco, comida, buffs, lo de tu clase, piedra, reparar). Sale solo en mazmorras y bandas al entrar, con la revisión de listos y con la cuenta del pull de DBM.")
         decir("/modos preset vuelve a poner encima la UI armada del modo en uso. /modos reiniciar la arma desde cero: los perfiles de Modos de ese modo vuelven a como vienen y se pone todo de nuevo (pregunta antes).")
         decir("También podés ponerle teclas en Key Bindings, sección Modos. Esas teclas nunca cambian con el modo.")

@@ -140,53 +140,89 @@ function R.ponerElvUI()
 end
 
 -- ------------------------------------------------------------ Cell
-R.CELL_VERSION = 4
+R.CELL_VERSION = 8
 R.CELL = {
     Heal = { party = "Healer: Party || Full HD", raid = "Healer: Raid10-25 || Full HD", raid40 = "Healer: Raid40 || Full HD" },
     DPS = { party = "DPS/Tank: Party || Full HD", raid = "DPS/Tank: Raid10-25 || Full HD", raid40 = "DPS/Tank: Raid40 || Full HD" },
 }
 R.CELL.Tank = R.CELL.DPS
--- Siempre un grupo por columna (12/10), de a 5 (una grilla de 5 x 5 en 25).
+-- Un grupo por columna (12/10), de a 5 (una grilla de 5 x 5 en 25). En heal, desde la
+-- 1.0.19, un grupo por fila (ver abajo).
 -- El ancla de Cell es un cuadradito de 20 x 10: con anchor TOPLEFT los marcos
 -- empiezan 4 debajo de su borde de abajo y su BOTTOM queda 10 a la derecha del
 -- borde izquierdo de los marcos. Con BOTTOMLEFT empiezan 4 arriba de su borde de arriba.
--- (1.0.15) al estilo de la captura de banda que mandó (21:41 del 18/10): marcos
--- compactos con 2 de separación, la vida del color de la clase, el nombre al medio.
---   Heal: abajo al medio, de 344 a 126 (Mis CDs de heal empieza en 125). Banda 80x42
---   (5 columnas, 408 de ancho), grupo 100x42 (una columna), 40 en 80x36 (8 columnas).
---   DPS/Tank: a la izquierda, arriba del chat (que llega a 239), desde 349 para arriba.
---   El grupo de 5 de DPS ya no queda chico (era 105x29 debajo de tu marco): 100x42.
+-- (1.0.15) al estilo de la captura de banda que mandó (21:41 del 18/10).
+-- (1.0.16) más grandes (le seguían quedando chicos) y sin hueco entre marcos (el borde
+-- de 1 de cada uno hace la línea oscura de 2, como en la captura; antes se veía el
+-- fondo del juego entre marcos):
+--   Heal: abajo al medio, de 352 (justo debajo del casteo de la WA de heal, 357) a 122
+--   (arriba de las posturas y la mascota a la vista, que llegan a 116). Empieza en -255:
+--   a la izquierda, debajo de tu marco, van los CDs chicos de la WA de heal (de -469 a
+--   -265). Crece a la derecha hasta antes de Details (503 a 1920 de ancho).
+-- (1.0.17) MÁS GRANDES. Lo que se veía chico en Dalaran (24/10) era el diseño de 40:
+--   Cell lo usaba con cualquier banda fuera de una instancia (raid_outdoor), y yo lo
+--   había hecho angosto. Ahora fuera de instancia va el de banda, y el de 40 queda solo
+--   para los campos de batalla de 40.
+--   Heal: banda 128x46 (5 columnas, de -255 a 385), grupo 160x46, 40 en 92x46 (hasta 481).
+--   DPS/Tank: a la izquierda desde 349: banda 130x56, grupo 160x56, 40 en 100x46.
+-- (1.0.18) banda de heal 150x46 (de -255 a 495, antes de Details) y de DPS 150x56,
+--   para que el nombre entre con los íconos grandes al costado.
+-- (1.0.19) heal como las UIs de heal que mandó (24/10) y como venía el Cell de heal de
+--   Merfin (100x50, un grupo por fila): la grilla centrada justo debajo del casteo de la
+--   WA de heal, cada grupo una fila de 5 (en grupo, 5 en fila; en 10, dos filas; en 25,
+--   la grilla de 5 x 5) y los marcos más altos, con lo de adentro en tres filas.
+--   De -257 a 258 (a la izquierda, debajo de tu marco, siguen los CDs chicos de la WA de
+--   heal, hasta -265, y las auras de pala de Blizzard a la vista, hasta -257,2) y de 352 a
+--   87: abajo quedan las barras a la vista (hasta 82) o Mis CDs (que en heal bajan al
+--   borde de la pantalla). La mascota a la vista se corre a la derecha del Cell
+--   (R.ponerMascota).
+--   Banda 103x53, grupo 103x60, 40 (campos de batalla de 40) 103x33 en 8 filas.
 R.CELL_DISENOS = {
-    ["Healer: Raid10-25 || Full HD"] = { orientation = "vertical", size = { 80, 42 }, anchor = "TOPLEFT",
-        position = { "BOTTOM", -194, 348 }, spacingX = 2, spacingY = 2, unitsPerColumn = 5, maxColumns = 8, powerSize = 4 },
-    ["Healer: Party || Full HD"] = { orientation = "vertical", size = { 100, 42 }, anchor = "TOPLEFT",
-        position = { "BOTTOM", -40, 348 }, spacingX = 2, spacingY = 2, unitsPerColumn = 5, maxColumns = 8, powerSize = 4 },
-    ["Healer: Raid40 || Full HD"] = { orientation = "vertical", size = { 80, 36 }, anchor = "TOPLEFT",
-        position = { "BOTTOM", -317, 348 }, spacingX = 2, spacingY = 2, unitsPerColumn = 5, maxColumns = 8, powerSize = 3 },
-    ["DPS/Tank: Party || Full HD"] = { orientation = "vertical", size = { 100, 42 }, anchor = "BOTTOMLEFT",
-        position = { "BOTTOMLEFT", 4, 335 }, spacingX = 2, spacingY = 2, unitsPerColumn = 5, maxColumns = 8, powerSize = 4 },
-    ["DPS/Tank: Raid10-25 || Full HD"] = { orientation = "vertical", size = { 80, 42 }, anchor = "BOTTOMLEFT",
-        position = { "BOTTOMLEFT", 4, 335 }, spacingX = 2, spacingY = 2, unitsPerColumn = 5, maxColumns = 8, powerSize = 4 },
-    ["DPS/Tank: Raid40 || Full HD"] = { orientation = "vertical", size = { 80, 36 }, anchor = "BOTTOMLEFT",
-        position = { "BOTTOMLEFT", 4, 335 }, spacingX = 2, spacingY = 2, unitsPerColumn = 5, maxColumns = 8, powerSize = 3 },
+    ["Healer: Raid10-25 || Full HD"] = { orientation = "horizontal", size = { 103, 53 }, anchor = "TOPLEFT",
+        position = { "BOTTOM", -247, 356 }, spacingX = 0, spacingY = 0, unitsPerColumn = 5, maxColumns = 8, powerSize = 4 },
+    ["Healer: Party || Full HD"] = { orientation = "horizontal", size = { 103, 60 }, anchor = "TOPLEFT",
+        position = { "BOTTOM", -247, 356 }, spacingX = 0, spacingY = 0, unitsPerColumn = 5, maxColumns = 8, powerSize = 4 },
+    ["Healer: Raid40 || Full HD"] = { orientation = "horizontal", size = { 103, 33 }, anchor = "TOPLEFT",
+        position = { "BOTTOM", -247, 356 }, spacingX = 0, spacingY = 0, unitsPerColumn = 5, maxColumns = 8, powerSize = 3 },
+    ["DPS/Tank: Party || Full HD"] = { orientation = "vertical", size = { 160, 56 }, anchor = "BOTTOMLEFT",
+        position = { "BOTTOMLEFT", 4, 335 }, spacingX = 0, spacingY = 0, unitsPerColumn = 5, maxColumns = 8, powerSize = 4 },
+    ["DPS/Tank: Raid10-25 || Full HD"] = { orientation = "vertical", size = { 150, 56 }, anchor = "BOTTOMLEFT",
+        position = { "BOTTOMLEFT", 4, 335 }, spacingX = 0, spacingY = 0, unitsPerColumn = 5, maxColumns = 8, powerSize = 4 },
+    ["DPS/Tank: Raid40 || Full HD"] = { orientation = "vertical", size = { 100, 46 }, anchor = "BOTTOMLEFT",
+        position = { "BOTTOMLEFT", 4, 335 }, spacingX = 0, spacingY = 0, unitsPerColumn = 5, maxColumns = 8, powerSize = 4 },
 }
+-- cuántos marcos de ancho y de alto tiene la grilla entera con g grupos
+function R.grillaCell(nombre, g)
+    local d = R.CELL_DISENOS[nombre]
+    if not d then return nil end
+    local cols, filas = g, 5
+    if d.orientation == "horizontal" then cols, filas = 5, g end
+    return cols * d.size[1] + (cols - 1) * (d.spacingX or 0), filas * d.size[2] + (filas - 1) * (d.spacingY or 0)
+end
 -- dónde sale el cartelito al pasar el mouse por Cell, para que no lo tape: en heal
--- a la izquierda del Cell, en DPS/Tank arriba (las columnas crecen a la derecha y
--- cambian con el tamaño del grupo: arriba no tapa ninguna)
+-- a la derecha de la grilla (a la izquierda están los CDs chicos de la WA de heal),
+-- en DPS/Tank arriba (las columnas crecen a la derecha y cambian con el tamaño del
+-- grupo: arriba no tapa ninguna). Se ancla al primer marco (arriba a la izquierda).
 R.CELL_TOOLTIP = {
-    Heal = { "TOPRIGHT", "Cell", "TOPLEFT", -6, 0 },
-    DPS = { "BOTTOMLEFT", "Cell", "BOTTOMLEFT", 0, 224 },
+    Heal = { "TOPLEFT", "Cell", "TOPLEFT", 5 * 103 + 6, 0 },
+    DPS = { "BOTTOMLEFT", "Cell", "BOTTOMLEFT", 0, 5 * 56 + 6 },
 }
 R.CELL_TOOLTIP.Tank = R.CELL_TOOLTIP.DPS
 
 -- colores de clase (el "Class Theme" de Merfin): barra del color de la clase, lo
--- perdido oscuro y el nombre en blanco
+-- perdido oscuro y el nombre en blanco.
+-- (1.0.16) sólidos (se veía el pasto a través: fondo y lo perdido iban medio
+-- transparentes), los que están lejos al 65% (Cell trae 45%: en un campo de batalla
+-- casi todos quedaban lavados) y los muertos en rojo oscuro (sin el texto GHOST/DEAD)
+R.CELL_LEJOS = 0.65
 local function temaClase()
     CellDB.appearance = CellDB.appearance or {}
     local ap = CellDB.appearance
-    ap.barAlpha, ap.bgAlpha, ap.lossAlpha = 1, 0.5, 0.8
+    ap.barAlpha, ap.bgAlpha, ap.lossAlpha = 1, 1, 1
+    ap.outOfRangeAlpha = R.CELL_LEJOS
     ap.barColor = { "class_color", { 0.82, 0.68, 0.68 } }
-    ap.lossColor = { "custom", { 0.19, 0.157, 0.157 } }
+    ap.lossColor = { "custom", { 0.12, 0.1, 0.1 } }
+    ap.deathColor = { true, { 0.4, 0.08, 0.08 } }
     for _, l in pairs(CellDB.layouts) do
         for _, ind in ipairs(type(l) == "table" and l.indicators or {}) do
             if ind.indicatorName == "nameText" then
@@ -265,61 +301,92 @@ function R.vidaCell()
     CellDB.modosVida = R.CELL_VIDA_VERSION
     return true
 end
--- (1.0.15) lo de adentro de cada marco, en filas, sin que nada se pise (lo pidió:
--- "lo más importante es que no se overlapee nada, y que lo importante de cada clase
--- se vea claro"):
---   arriba: rol, el aura suelta de tu clase (Weakened Soul, Soulstone...), la marca
---           de banda y a la derecha tus HoTs/escudos (hasta 4, de derecha a izquierda)
---   medio:  el debuff de banda a la izquierda, el nombre al medio (se corta si no
---           entra) y el hechizo que te apunta a la derecha
---   abajo:  tus buffs chicos a la izquierda (Earthliving, Divine Aegis...), la vida
---           en número al medio y los CDs de afuera/defensivos a la derecha
---   y la barra de maná. Lo que se saca: lo dice el color del marco (dispels), el
---   borde (agro, en vez de la barrita de arriba que se metía en el marco de arriba).
--- icA: íconos de arriba, icB: los del medio, icC: los de abajo, fn: letra del nombre,
--- fv: letra de la vida
-R.CELL_ESTILO_VERSION = 1
+-- (1.0.15) lo de adentro de cada marco, sin que nada se pise (lo pidió: "lo más
+-- importante es que no se overlapee nada, y que lo importante de cada clase se vea
+-- claro"). (1.0.16) rehecho después de verlo en un campo de batalla.
+-- (1.0.18) íconos grandes ("siguen siendo diminutos"): dos filas en vez de tres, con
+-- los íconos a los costados del texto en vez de arriba y abajo, así entran del alto
+-- de media fila (18 en heal, 22 en DPS, antes 12):
+--   arriba: rol y marca de banda chicos, el nombre en blanco y a la derecha tus HoTs,
+--           escudos y efectos (3, o 2 donde no entran más)
+--   abajo:  el debuff de banda, el ícono del debuff que podés sacar y el aura suelta de
+--           tu clase (Weakened Soul, Soulstone...) a la izquierda, la vida en número y
+--           los CDs de afuera/defensivos a la derecha
+--   y la barra de maná. Agro: el borde. Muerto: el marco en rojo oscuro.
+-- (1.0.19) heal en tres filas (los marcos de heal ahora son más altos y angostos):
+--   arriba: rol, marca y el aura suelta de tu clase a la izquierda, tus HoTs a la derecha
+--   medio:  el nombre, de lado a lado
+--   abajo:  el debuff de banda y el que podés sacar a la izquierda, la vida en número y
+--           los CDs de afuera/defensivos a la derecha
+--   El de 40 de heal (marcos bajos, 8 filas) sigue en dos filas.
+-- filas: 2 o 3, ic: íconos, rol: el rol y la marca, fn: letra del nombre, fv: letra de
+-- la vida, hots: cuántos, cds: cuántos CDs de afuera (2), sinCds: sin CDs de afuera (la
+-- vida va a la derecha), sinMarca
+R.CELL_ESTILO_VERSION = 5
 R.CELL_MEDIDAS = {
-    ["Healer: Raid10-25 || Full HD"] = { icA = 11, icB = 13, icC = 10, fn = 11, fv = 9 },
-    ["DPS/Tank: Raid10-25 || Full HD"] = { icA = 11, icB = 13, icC = 10, fn = 11, fv = 9 },
-    ["Healer: Party || Full HD"] = { icA = 12, icB = 13, icC = 10, fn = 12, fv = 10 },
-    ["DPS/Tank: Party || Full HD"] = { icA = 12, icB = 13, icC = 10, fn = 12, fv = 10 },
-    ["Healer: Raid40 || Full HD"] = { icA = 9, icB = 11, icC = 9, fn = 10, fv = 8 },
-    ["DPS/Tank: Raid40 || Full HD"] = { icA = 9, icB = 11, icC = 9, fn = 10, fv = 8 },
+    ["Healer: Raid10-25 || Full HD"] = { filas = 3, ic = 16, rol = 12, fn = 13, fv = 11, hots = 3, cds = 2 },
+    ["Healer: Party || Full HD"] = { filas = 3, ic = 18, rol = 13, fn = 14, fv = 12, hots = 3, cds = 1 },
+    ["Healer: Raid40 || Full HD"] = { ic = 14, rol = 11, fn = 11, fv = 10, hots = 2, sinCds = true, sinMarca = true },
+    ["DPS/Tank: Raid10-25 || Full HD"] = { ic = 22, rol = 15, fn = 14, fv = 12, hots = 2 },
+    ["DPS/Tank: Party || Full HD"] = { ic = 22, rol = 15, fn = 15, fv = 12, hots = 2 },
+    ["DPS/Tank: Raid40 || Full HD"] = { ic = 16, rol = 12, fn = 12, fv = 10, hots = 2, sinCds = true, sinMarca = true },
 }
--- las cajas de cada cosa dentro del marco (x e y desde arriba a la izquierda), para
--- la prueba y para poner las posiciones de Cell
+-- las cajas de cada cosa dentro del marco (x, y desde arriba a la izquierda, ancho y
+-- alto), para la prueba y para poner las posiciones de Cell
 function R.cajasCell(nombre)
     local d, m = R.CELL_DISENOS[nombre], R.CELL_MEDIDAS[nombre]
     if not (d and m) then return nil end
     local w, h, p = d.size[1], d.size[2], d.powerSize or 0
-    local A, B, C = m.icA, m.icB, m.icC
-    local finA = 1 + A                             -- fila de arriba: de 1 a 1 + icA
-    local altoB = h - p - 1 - C - finA - 1         -- lo que queda para el nombre
-    local yB = h / 2 - (finA + 1 + altoB / 2)      -- el medio de esa fila, desde el medio del marco
+    local I, r = m.ic, m.rol
+    local nc = m.sinCds and 0 or (m.cds or 2)
+    local y2 = h - p - 1 - I                          -- la fila de abajo, pegada a la barra de maná
+    local yr = 1 + (I - r) / 2                        -- rol y marca, al medio de la fila de arriba
     local c = {
-        rol = { 1, 1, A - 1, A - 1 }, suelta = { A + 1, 1, A, A }, marca = { 2 * A + 2, 1, A, A },
-        hots = { w - 1 - 4 * (A - 1), 1, 4 * (A - 1), A - 1 },
-        banda = { 1, h / 2 - yB - B / 2, B, B }, apunta = { w - 1 - B, h / 2 - yB - B / 2, B, B },
-        nombre = { 2 + B + 2, h / 2 - yB - m.fn / 2, w - 2 * (B + 4), m.fn },
-        chicos = { 1, h - p - 1 - C, 2 * C, C }, vida = { w / 2 - 2 * m.fv, h - p - 1 - m.fv, 4 * m.fv, m.fv },
-        cds = { w - 1 - 2 * C, h - p - 1 - C, 2 * C, C }, mana = { 0, h - p, w, p },
+        rol = { 1, yr, r, r }, hots = { w - 1 - m.hots * I, 1, m.hots * I, I },
+        banda = { 1, y2, I, I }, dispel = { I + 2, y2, I, I },
+        mana = { 0, h - p, w, p },
     }
-    return c, { w = w, h = h, p = p, yB = yB, ancho = (w - 2 * (B + 4)) / (w - 2) }
+    if not m.sinMarca then c.marca = { r + 2, yr, r, r } end
+    if nc > 0 then c.cds = { w - 1 - nc * I, y2, nc * I, I } end
+    local xV1 = (nc > 0) and (w - 2 - nc * I) or (w - 1)
+    local xV0
+    if m.filas == 3 then
+        local xS = m.sinMarca and (r + 2) or (2 * r + 3)
+        c.suelta = { xS, 1, I, I }
+        local y1 = 1 + I                              -- el nombre entre la fila de arriba y la de abajo
+        c.nombre = { 2, y1 + (y2 - y1 - m.fn) / 2, w - 4, m.fn }
+        xV0 = 2 * I + 3                               -- la vida: después de banda y dispel
+    else
+        c.suelta = { 2 * I + 3, y2, I, I }
+        local xN0 = m.sinMarca and (r + 3) or (2 * r + 4) -- el nombre empieza después del rol (y la marca)
+        local xN1 = w - 2 - m.hots * I                    -- y termina antes de los HoTs
+        c.nombre = { xN0, 1 + (I - m.fn) / 2, xN1 - xN0, m.fn }
+        xV0 = 3 + 3 * I                               -- la vida: después de banda, dispel y aura suelta
+    end
+    c.vida = { xV0, y2 + (I - m.fv) / 2, xV1 - xV0, m.fv }
+    return c, { w = w, h = h, p = p, I = I, r = r, nc = nc, yr = yr, y2 = y2,
+                xN0 = c.nombre[1], xN1 = c.nombre[1] + c.nombre[3], xV0 = xV0, xV1 = xV1 }
 end
 
 local function fuente(t, tam)
     t.font = type(t.font) == "table" and t.font or {}
     t.font[1], t.font[2], t.font[3], t.font[4] = t.font[1] or "Cell Default", tam, "Outline", false
 end
+-- dónde va cada cosa en Cell, sacado de su caja: lo de la izquierda por su esquina de
+-- arriba a la izquierda, lo que crece hacia la izquierda (HoTs y CDs) por la de arriba
+-- a la derecha, y los textos por su centro
+local function izq(b) return { "TOPLEFT", "button", "TOPLEFT", b[1], -b[2] } end
+local function der(b, w) return { "TOPRIGHT", "button", "TOPRIGHT", b[1] + b[3] - w, -b[2] } end
+local function centro(b) return { "CENTER", "button", "TOPLEFT", b[1] + b[3] / 2, -(b[2] + b[4] / 2) } end
+R.posCell = { izq = izq, der = der, centro = centro }
 function R.estiloCell()
     if not R.cellListo() then return false end
     if CellDB.modosEstilo == R.CELL_ESTILO_VERSION then return false end
     for nombre, m in pairs(R.CELL_MEDIDAS) do
         local l = CellDB.layouts[nombre]
-        local _, med = R.cajasCell(nombre)
-        if type(l) == "table" and type(l.indicators) == "table" and med then
-            local p, yB, A, B, C = med.p, med.yB, m.icA, m.icB, m.icC
+        local c, k = R.cajasCell(nombre)
+        if type(l) == "table" and type(l.indicators) == "table" and k then
+            local p, I, r, w = k.p, k.I, k.r, k.w
             local por = {}
             for _, ind in ipairs(l.indicators) do
                 if type(ind) == "table" and ind.indicatorName then por[ind.indicatorName] = ind end
@@ -327,36 +394,37 @@ function R.estiloCell()
             local function poner(n, t)
                 local ind = por[n]
                 if not ind then return end
-                for k, v in pairs(t) do ind[k] = v end
+                for kk, v in pairs(t) do ind[kk] = v end
             end
-            poner("roleIcon", { enabled = true, position = { "TOPLEFT", "button", "TOPLEFT", 1, -1 }, size = { A - 1, A - 1 } })
-            for i = 3, 6 do
-                poner("indicator" .. i, { position = { "TOPLEFT", "button", "TOPLEFT", A + 1, -1 }, size = { A, A } })
+            poner("roleIcon", { enabled = true, position = izq(c.rol), size = { r, r } })
+            poner("playerRaidIcon", { enabled = c.marca and true or false, position = izq(c.marca or c.rol), size = { r, r } })
+            local i1, i2 = por.indicator1, por.indicator2
+            if i1 and type(i1.auras) == "table" and i2 and type(i2.auras) == "table" then
+                local ya = {}
+                for _, id in ipairs(i1.auras) do ya[id] = true end
+                for _, id in ipairs(i2.auras) do if not ya[id] then i1.auras[#i1.auras + 1] = id; ya[id] = true end end
             end
-            poner("playerRaidIcon", { enabled = true, position = { "TOPLEFT", "button", "TOPLEFT", 2 * A + 2, -1 }, size = { A, A } })
-            poner("indicator1", { position = { "TOPRIGHT", "button", "TOPRIGHT", -1, -1 }, size = { A - 1, A - 1 }, num = 4,
-                                  orientation = "right-to-left" })
-            poner("raidDebuffs", { enabled = true, position = { "LEFT", "button", "LEFT", 1, yB }, size = { B, B }, num = 1,
-                                   orientation = "left-to-right" })
-            poner("targetedSpells", { enabled = true, position = { "RIGHT", "button", "RIGHT", -1, yB }, size = { B, B }, num = 1 })
-            poner("nameText", { enabled = true, position = { "CENTER", "button", "CENTER", 0, yB },
-                                textWidth = { "percentage", med.ancho } })
+            poner("indicator1", { position = der(c.hots, w), size = { I, I }, num = m.hots, orientation = "right-to-left" })
+            poner("indicator2", { enabled = false })
+            poner("nameText", { enabled = true, position = centro(c.nombre),
+                                textWidth = { "percentage", c.nombre[3] / (w - 2) } })
             if por.nameText then fuente(por.nameText, m.fn) end
-            poner("healthText", { enabled = true, position = { "BOTTOM", "button", "BOTTOM", 0, p + 1 } })
+            poner("raidDebuffs", { enabled = true, position = izq(c.banda), size = { I, I }, num = 1, orientation = "left-to-right" })
+            poner("dispels", { enabled = true, highlightType = "none", iconStyle = "blizzard",
+                               position = izq(c.dispel), size = { I, I }, orientation = "left-to-right" })
+            -- el aura suelta de tu clase (Weakened Soul, Soulstone...)
+            for i = 3, 6 do poner("indicator" .. i, { position = izq(c.suelta), size = { I, I } }) end
+            poner("healthText", { enabled = true, position = centro(c.vida) })
             if por.healthText then fuente(por.healthText, m.fv) end
-            poner("statusText", { position = { "BOTTOM", p + 1, "justify" } })
-            poner("indicator2", { position = { "BOTTOMLEFT", "button", "BOTTOMLEFT", 1, p + 1 }, size = { C, C }, num = 2,
-                                  orientation = "left-to-right" })
-            poner("allCooldowns", { enabled = true, position = { "BOTTOMRIGHT", "button", "BOTTOMRIGHT", -1, p + 1 }, size = { C, C },
-                                    num = 2, orientation = "right-to-left" })
-            -- lo que aparece solo un momento (muerto, resurrección, listo): en el medio
-            poner("statusIcon", { position = { "CENTER", "button", "CENTER", 0, yB }, size = { B + 2, B + 2 } })
-            poner("readyCheckIcon", { position = { "CENTER", "button", "CENTER", 0, yB }, size = { B + 2, B + 2 } })
-            poner("dispels", { enabled = true, iconStyle = "none" })
+            poner("allCooldowns", { enabled = c.cds and true or false, position = der(c.cds or c.hots, w),
+                                    size = { I, I }, num = k.nc > 0 and k.nc or 1, orientation = "right-to-left" })
+            -- lo que aparece solo un momento (resurrección, listo): al medio
+            poner("statusIcon", { position = { "CENTER", "button", "CENTER", 0, 0 }, size = { I, I } })
+            poner("readyCheckIcon", { position = { "CENTER", "button", "CENTER", 0, 0 }, size = { I, I } })
             -- afuera: lo que se pisaba con otros íconos o se salía del marco
             for _, n in ipairs({ "leaderIcon", "aggroBar", "aggroBlink", "targetRaidIcon", "combatIcon", "targetCounter",
                                  "externalCooldowns", "defensiveCooldowns", "debuffs", "missingBuffs", "powerWordShield",
-                                 "powerText" }) do
+                                 "powerText", "targetedSpells", "statusText" }) do
                 poner(n, { enabled = false })
             end
             poner("aggroBorder", { enabled = true })
@@ -383,7 +451,7 @@ function R.ponerCellRoles()
         local rol = R.de(g) or R.actual() or "DPS"
         local L = R.CELL[rol]
         local t = { party = L.party, arena = L.party, raid10 = L.raid, raid25 = L.raid, battleground15 = L.raid,
-                    raid_outdoor = L.raid40, battleground40 = L.raid40, solo = "hide" }
+                    raid_outdoor = L.raid, battleground40 = L.raid40, solo = "hide" }
         local viejo = CellCharacterDB.layoutAutoSwitch[g]
         local igual = type(viejo) == "table"
         if igual then for k, v in pairs(t) do if viejo[k] ~= v then igual = false end end end
@@ -407,6 +475,40 @@ local function recargar(motivo)
     NS.pedirRecarga("MODOS_RECARGAR_ROL")
 end
 
+-- ------------------------------------------------------------ la barra de la mascota
+-- (1.0.19) a la vista iba arriba de la barra 5 (de 198 a 452, de 89 a 113), donde ahora
+-- llega el Cell de heal: en heal va donde con las barras escondidas, a la derecha del
+-- Cell y más chica (de 265 a 488). En DPS y Tank queda donde estaba.
+function R.mascotaBT(rol, vista)
+    local pv = NS.presets and NS.presets.PvE
+    if not pv then return nil end
+    local v = (vista == "visibles" and rol ~= "Heal") and (pv.Bartender4Visible or pv.Bartender4) or pv.Bartender4
+    return v.PetBar and v.PetBar.position
+end
+local function mismoLugar(a, b)
+    if not (type(a) == "table" and type(b) == "table") then return false end
+    local function cerca(x, y) return tonumber(x) and tonumber(y) and math.abs(x - y) < 0.5 end
+    return a.point == b.point and cerca(a.x, b.x) and cerca(a.y, b.y) and cerca(a.scale or 1, b.scale or 1)
+end
+-- con Bartender4 y las barras a la vista, en el momento (fuera de combate). Si la
+-- moviste vos a otro lado no se toca.
+function R.ponerMascota()
+    local B = NS.barras
+    if not (B and B.estilo and B.estilo() == "bartender" and B.visibles()) then return false end
+    if not (Bartender4 and Bartender4.GetModule) then return false end
+    if InCombatLockdown and InCombatLockdown() then return false end
+    local ok, mod = pcall(Bartender4.GetModule, Bartender4, "PetBar", true)
+    local pos = ok and mod and mod.db and mod.db.profile and mod.db.profile.position
+    local quiero = R.mascotaBT(R.actual(), "visibles")
+    if not (type(pos) == "table" and quiero) or mismoLugar(pos, quiero) then return false end
+    if not (mismoLugar(pos, R.mascotaBT("DPS", "visibles")) or mismoLugar(pos, R.mascotaBT("Heal", "visibles"))) then
+        return false
+    end
+    pos.point, pos.x, pos.y, pos.scale = quiero.point, quiero.x, quiero.y, quiero.scale
+    if mod.ApplyConfig then pcall(mod.ApplyConfig, mod) end
+    return true
+end
+
 -- ------------------------------------------------------------ aplicar
 function R.avisarAuras()
     if WeakAuras and WeakAuras.ScanEvents then pcall(WeakAuras.ScanEvents, "MODOS_MISCDS") end
@@ -423,6 +525,8 @@ function R.aplicar()
     R.ponerCellRoles()
     R.ponerCellTooltip()
     R.avisarAuras()
+    R.ponerMascota()
+    if NS.barras and NS.barras.apartar then NS.barras.apartar() end
     if importo or ajusto or vida or estilo then
         recargar(importo and "Importé el Cell de Merfin y lo acomodé para tu rol."
                  or ajusto and "Acomodé los diseños de Cell."

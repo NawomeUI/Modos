@@ -49,6 +49,11 @@ local function escondida(t)
     t.fadeout, t.alpha, t.clickthrough = false, 0, true
     return t
 end
+-- (1.0.25) a la vista y se puede tocar (la de profesiones, monturas y mascotas)
+local function aLaVista(t)
+    t.enabled, t.fadeout, t.alpha, t.clickthrough = true, false, 1, false
+    return t
+end
 -- una barra como la de su cuenta principal: a la vista, tamaño normal, se puede tocar
 local function bypass(pos, filas)
     pos.scale = 1
@@ -166,17 +171,22 @@ PR.PvE = {
     },
     -- Bartender4: en PvE nada en el medio. Las barras 1 a 6 en columnas a la
     -- derecha, invisibles (aparecen con el mouse encima para acomodar hechizos).
+    -- (1.0.25) lo pidió (25/10): una barra a la vista en la columna del borde para
+    -- profesiones, monturas y mascotas, la 10 (ninguna postura la cambia: Bartender pasa
+    -- la 1 a la 7, 8 o 9 con las posturas, nunca a la 10), y las escondidas juntas a su
+    -- izquierda, así al ponerlas a la vista para bindear (/modos barras ver) se ven todas.
     Bartender4 = {
         ActionBars = { actionbars = {
-            [1] = invisible({ position = costado(1), rows = 12 }),
-            [2] = invisible({ position = costado(2), rows = 12 }),
-            [3] = invisible({ position = costado(3), rows = 12 }),
-            [4] = invisible({ position = costado(4), rows = 12 }),
-            [5] = invisible({ position = costado(5), rows = 12 }),
-            [6] = invisible({ position = costado(6), rows = 12 }),
-            -- (1.0.13) las barras 7 a 10 (páginas de posturas) apagadas: la 1 ya cambia
+            [1] = invisible({ position = costado(2), rows = 12 }),
+            [2] = invisible({ position = costado(3), rows = 12 }),
+            [3] = invisible({ position = costado(4), rows = 12 }),
+            [4] = invisible({ position = costado(5), rows = 12 }),
+            [5] = invisible({ position = costado(6), rows = 12 }),
+            [6] = invisible({ position = costado(7), rows = 12 }),
+            -- (1.0.13) las barras 7 a 9 (páginas de posturas) apagadas: la 1 ya cambia
             -- sola con la postura. No aparecen ni con el mouse.
-            [7] = { enabled = false }, [8] = { enabled = false }, [9] = { enabled = false }, [10] = { enabled = false },
+            [7] = { enabled = false }, [8] = { enabled = false }, [9] = { enabled = false },
+            [10] = aLaVista({ position = costado(1), rows = 12 }),
         } },
         -- (12/10) posturas/formas/auras de pala, pet y totems: abajo a la izquierda,
         -- arriba del chat y fuera del medio (ahí van la WA de clase y Mis CDs).
@@ -414,11 +424,18 @@ PR.PARTES = {
     -- chat (y donde corresponde a la vista o escondidas), PvP escondidas si lo eligió,
     -- y sin los totems ni la experiencia de la mascota de ElvUI
     { id = "barras2", v = 1, modos = { PvE = true, PvP = true }, bt = { "StanceBar", "PetBar", "MultiCast" },
-      btApagar = { 7, 8, 9, 10 }, btEscondidas = true },
+      btApagar = { 7, 8, 9 }, btEscondidas = true },   -- (1.0.25) la 10 ya no: es la de profesiones
     { id = "sueltas", v = 1, modos = { PvE = true, PvP = true }, elv = "sueltas" },
     { id = "pve2", v = 1, modos = { PvE = true }, elv = "pve2" },
-    { id = "details", v = 1, modos = { PvE = true, PvP = true }, details = true, siempre = true },
+    { id = "details", v = 2, modos = { PvE = true, PvP = true }, details = true, siempre = true },   -- 1.0.24: PvP también con curación
+    -- (1.0.24) MinimapButtonFrame en una sola columna: crece para abajo, no para el costado
+    { id = "mbf", v = 1, modos = { PvE = true, PvP = true }, mbf = true, siempre = true, una = true },
+    -- (1.0.25) con Bartender escondidas: la 10 a la vista en el borde y las escondidas
+    -- juntas a su izquierda (todas las barras de acción del preset, una vez)
+    { id = "barras3", v = 1, modos = { PvE = true, PvP = true }, bt = { "ActionBars" }, soloEscondidas = true },
 }
+-- (1.0.24) MinimapButtonFrame como lo puso él: los botones en una sola columna
+PR.MBF = { columns_or_rows = 1, sort_by_rows = false }
 -- (1.0.10) Bartender4: fuera de rango se pone rojo el botón entero, como en su
 -- cuenta principal (con "hotkey" solo se ponía rojo el número del bind)
 PR.BT_BASE = { outofrange = "button" }
@@ -480,6 +497,13 @@ PR.PvP.ElvDB.general.totems = { enable = false }       -- (1.0.13) los totems de
 PR.PvP.Bartender4Visible = PR.PvP.Bartender4
 PR.PvP.Bartender4 = copia(PR.PvP.Bartender4Visible)
 for i = 1, 6 do escondida(PR.PvP.Bartender4.ActionBars.actionbars[i]) end
+-- (1.0.25) escondidas como en PvE: juntas en columnas al costado derecho, a la
+-- izquierda de la 10, que queda a la vista en el borde (profesiones, monturas, mascotas)
+for i = 1, 6 do
+    local b = PR.PvP.Bartender4.ActionBars.actionbars[i]
+    b.position, b.rows = costado(i + 1), 12
+end
+PR.PvP.Bartender4.ActionBars.actionbars[10] = aLaVista({ position = costado(1), rows = 12 })
 PR.PvE.privado.unitframe = { enable = true }
 PR.PvE.ElvDB.general.totems = { enable = false }       -- los totems los muestra la WA del chamán
 -- dónde van los marcos según el rol (los de Merfin para 1080p). Tank y DPS: tu
@@ -591,16 +615,21 @@ PR.MRT_LUGAR = { x = 4, y = -4 }
 -- ancho). PvP: una ventana de daño. PvE: daño arriba y curación abajo (con el
 -- título, 20, terminan en 241: debajo del casteo del foco de PvE, que en el piso
 -- más bajo de la WA de clase empieza en 243). Atributo 1 = daño, 2 = curación.
+-- (1.0.24) PvP igual que PvE (lo pidió, 25/10): siempre daño y curación, del mismo
+-- tamaño, abajo a la derecha.
 PR.DETAILS = {
     margenDer = 212, abajo = 46, ancho = 241, titulo = 20, separacion = 1,
-    PvP = { { atributo = 1, alto = 185 } },
+    PvP = { { atributo = 1, alto = 77 }, { atributo = 2, alto = 77 } },
     -- (1.0.14) 77 y desde 46: con los marcos en el piso de la WA (sacerdote sombras y
     -- chamán mejora, 265) el casteo del foco baja hasta 243
     PvE = { { atributo = 1, alto = 77 }, { atributo = 2, alto = 77 } },
 }
 -- Mis CDs PvE: altura de la primera fila (desde el centro de la pantalla). DPS/Tank:
 -- debajo de la WA de clase. Heal: debajo del Cell (más bajo desde la 0.9.2, 44 de alto).
-PR.MISCDS_Y = { DPS = -375, Tank = -375, Heal = -435 }
+-- (1.0.16) Heal un poco más abajo (las dos filas de 37 a 120) para que el Cell de heal,
+-- más grande, termine en 122.
+-- (1.0.19) Heal al borde de abajo (las dos filas de 3 a 86): el Cell de heal llega a 87.
+PR.MISCDS_Y = { DPS = -375, Tank = -375, Heal = -474 }
 
 -- copia "de" adentro de "a" (sin borrar lo que no está en "de")
 function PR.mezclar(a, de)

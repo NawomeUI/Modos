@@ -579,6 +579,73 @@ local function ponerBT(m)
 end
 P.ponerBT = ponerBT
 
+-- (1.0.20) la forma de Bartender4 (a la vista o escondidas) de cada modo ya armado
+-- tiene que ser la que elegiste. Fallaba al elegir el modo antes que las barras (en el
+-- asistente): el modo se armaba con la forma de fábrica (en PvP, a la vista) y elegir
+-- las barras después no la cambiaba (solo se reescribía si ya tenías Bartender y
+-- cambiabas de forma). Ahora, al entrar, si la barra 1 del perfil de un modo está como
+-- la otra forma (y no como la elegida) se vuelve a poner. Solo se mira lo que cambia
+-- entre las dos formas (en PvP, que se vea y que la atraviese el mouse; en PvE, dónde
+-- está y si aparece con el mouse): si la acomodaste a mano, no se toca.
+local BT_FABRICA = { alpha = 1, fadeout = false, fadeoutalpha = 0.1, fadeoutdelay = 0.2, clickthrough = false,
+                     enabled = true, rows = 1, padding = 2, ["position.scale"] = 1,
+                     ["position.growVertical"] = "DOWN", ["position.growHorizontal"] = "RIGHT" }
+local function plano(t, pre, r)
+    r = r or {}
+    for k, v in pairs(type(t) == "table" and t or {}) do
+        local kk = pre and (pre .. "." .. tostring(k)) or tostring(k)
+        if type(v) == "table" then plano(v, kk, r) else r[kk] = v end
+    end
+    return r
+end
+local function mismo(a, b)
+    if type(a) == "number" and type(b) == "number" then return math.abs(a - b) < 0.01 end
+    return a == b
+end
+-- ¿la barra b está como la forma "como" (y no como "no")?
+function P.pareceForma(b, como, no)
+    local fc, fn, fb = plano(como), plano(no), plano(b)
+    local claves = {}
+    for k in pairs(fc) do claves[k] = true end
+    for k in pairs(fn) do claves[k] = true end
+    local hay = false
+    for k in pairs(claves) do
+        local vc = fc[k]; if vc == nil then vc = BT_FABRICA[k] end
+        local vn = fn[k]; if vn == nil then vn = BT_FABRICA[k] end
+        if not mismo(vc, vn) then
+            hay = true
+            local vb = fb[k]; if vb == nil then vb = BT_FABRICA[k] end
+            if not mismo(vb, vc) then return false end
+        end
+    end
+    return hay
+end
+function P.revisarFormaBT()
+    local pj, pr = NS.pj, NS.presets
+    if not (pj and pj.presets and pr and NS.barras and NS.barras.estilo() == "bartender") then return false end
+    local db = baseDe("Bartender4DB")
+    local e = datos().Bartender4DB
+    if not (db and e and e.sigue) then return false end
+    local ab = db.sv.namespaces and db.sv.namespaces.ActionBars
+    local hubo = false
+    for m in pairs(pj.presets) do
+        local p, n = pr[m], e[m]
+        local quiero = p and p.Bartender4Visible and P.btVariante(m)
+        local perfil = n and ab and ab.profiles and ab.profiles[n]
+        local b1 = perfil and type(perfil.actionbars) == "table" and perfil.actionbars[1]
+        if quiero and type(b1) == "table" then
+            local otra = (quiero == p.Bartender4Visible) and p.Bartender4 or p.Bartender4Visible
+            local q1, o1 = quiero.ActionBars.actionbars[1], otra.ActionBars.actionbars[1]
+            if P.pareceForma(b1, o1, q1) then
+                pj.btPend = pj.btPend or {}
+                pj.btPend[m] = true
+                hubo = true
+            end
+        end
+    end
+    return hubo
+end
+
 -- si pasó de las barras de Blizzard a Bartender4 con la UI ya armada, falta
 -- poner la parte de Bartender4 (con recarga)
 function P.ponerBTPendiente(m, r)
@@ -870,6 +937,11 @@ function P.ponerParte(m, x, hecho, movidos)
         if apagadoEn("Bartender4", m) then return true end
         local e = datos().Bartender4DB
         if e and not e.sigue then return true end
+        -- (1.0.25) las que son solo para la forma escondida de Bartender
+        if x.soloEscondidas and not (NS.barras and NS.barras.estilo() == "bartender" and p.Bartender4
+                                     and P.btVariante(m) == p.Bartender4) then
+            return true
+        end
         local db, n = propio("Bartender4DB", m)
         if not db then return false end
         local fuente = P.btVariante(m) or {}
@@ -954,8 +1026,20 @@ function P.ponerParte(m, x, hecho, movidos)
         if not V then return true end
         if not V.hayDetails() then return false end
         local ok = V.details(m)
-        if ok then NS.decir("Acomodé Details abajo a la derecha" .. (m == "PvE" and " (daño arriba y curación abajo)." or ".")) end
+        if ok then NS.decir("Acomodé Details abajo a la derecha (daño arriba y curación abajo).") end
         return ok
+    elseif x.mbf then
+        -- (1.0.24) MinimapButtonFrame en una columna (en el momento). Sin MBF instalado, nada.
+        local MBF = _G.MBF
+        if not (type(MBF) == "table" and MBF.db and MBF.db.profile and pr.MBF) then
+            return not (NS.addons and NS.addons.instalado and NS.addons.instalado("MinimapButtonFrame"))
+        end
+        local cambio = false
+        for k, v in pairs(pr.MBF) do
+            if MBF.db.profile[k] ~= v then MBF.db.profile[k] = v; cambio = true end
+        end
+        if cambio and MBF.Scan then pcall(MBF.Scan, MBF) end
+        return true
     elseif x.compactAlto then
         -- (1.0.6) solo el alto de los marcos de tu equipo, en el perfil de Compact
         -- que usás ahora: el lugar y lo demás quedan como estaban
@@ -1085,6 +1169,7 @@ function P.alEntrar()
     if #hecho > 0 and NS.recargarSiHace then
         NS.recargarSiHace(pj.activo, { recargar = true, preset = hecho })
     end
+    if pj and pj.activo and not NS.recargando then P.revisarFormaBT() end
     if pj and pj.activo and pj.btPend and pj.btPend[pj.activo] and not NS.recargando then
         local rb = {}
         if P.ponerBTPendiente(pj.activo, rb) and NS.recargarSiHace then NS.recargarSiHace(pj.activo, rb) end

@@ -44,6 +44,12 @@ B.BOLSAS = { "BOTTOMRIGHT", -10, 6 }        -- la mochila (las otras bolsas a su
 B.APARTE = { escala = 0.8, abajo = 92,
              visibles = { postura = -463.6, totems = -463.6, mascota = 144, escalaMascota = 0.8 },
              escondidas = { postura = -480, totems = -480, mascota = 262, escalaMascota = 0.6 } }
+-- (1.0.19) la de la mascota a la vista, en heal, va donde la de las escondidas: arriba
+-- de la barra de abajo a la derecha llega ahora el Cell de heal
+function B.mascota(vista, rol)
+    local a = (vista == "visibles" and rol ~= "Heal") and B.APARTE.visibles or B.APARTE.escondidas
+    return a.mascota, a.escalaMascota or B.APARTE.escala
+end
 local ARTE = { "MainMenuBarLeftEndCap", "MainMenuBarRightEndCap", "MainMenuBarTexture0", "MainMenuBarTexture1",
                "MainMenuBarTexture2", "MainMenuBarTexture3", "MainMenuMaxLevelBar0", "MainMenuMaxLevelBar1",
                "MainMenuMaxLevelBar2", "MainMenuMaxLevelBar3", "ShapeshiftBarLeft", "ShapeshiftBarMiddle",
@@ -181,10 +187,10 @@ function B.apartar()
         -- los botones (el marco que se mueva, que no tiene nada a la vista)
         local pb, p1 = _G.PetActionBarFrame, _G.PetActionButton1
         if pb and p1 then
-            local em = a.escalaMascota or e
+            local x, em = B.mascota(B.vista(), NS.rol and NS.rol.actual and NS.rol.actual())
             pb:SetScale(em)
             p1:ClearAllPoints()
-            p1:SetPoint("BOTTOMLEFT", UIParent, "BOTTOM", a.mascota / em, abajo / em)
+            p1:SetPoint("BOTTOMLEFT", UIParent, "BOTTOM", x / em, abajo / em)
         end
     end)
 end
@@ -233,7 +239,11 @@ end
 
 -- ------------------------------------------------------------ a la vista o escondidas (Blizzard)
 local ABAJO = { "ActionButton", "MultiBarBottomLeftButton", "MultiBarBottomRightButton" }
-local COSTADO = { "MultiBarRight", "MultiBarLeft" }
+-- (1.0.25) con las barras escondidas, la de la derecha del todo (MultiBarRight) queda a
+-- la vista para profesiones, monturas y mascotas (como la 10 con Bartender). La otra del
+-- costado aparece con el mouse.
+local COSTADO = { "MultiBarLeft" }
+local FIJA = "MultiBarRight"
 local function botonesAbajo(fn)
     for _, pre in ipairs(ABAJO) do
         for i = 1, 12 do local b = _G[pre .. i]; if b then fn(b) end end
@@ -241,6 +251,7 @@ local function botonesAbajo(fn)
 end
 local vigia
 local function costadoConMouse(si)
+    if _G[FIJA] and _G[FIJA].SetAlpha then _G[FIJA]:SetAlpha(1) end
     if not si then
         if vigia then vigia:SetScript("OnUpdate", nil) end
         for _, n in ipairs(COSTADO) do if _G[n] then _G[n]:SetAlpha(1) end end
@@ -274,7 +285,8 @@ B.prenderBarras = prenderBarras
 
 function B.ponerVista()
     if not B.sinBartender() then return false end
-    local ver = B.visibles()
+    -- (1.0.25) también mientras están todas a la vista para bindear (/modos barras ver)
+    local ver = B.visibles() or (B.todasAVista and B.todasAVista())
     return hacerAlCombate(function()
         prenderBarras()
         local function poner(b)
@@ -332,14 +344,17 @@ function B.elegir(estilo, vista)
         NS.decir("Bartender4 no está instalado en este juego: elegí las barras de Blizzard.")
         return false
     end
-    local antes = { estilo = B.estilo(), vista = B.vista() }
     pj.barrasVista = vista
     local recargar = A and A.elegirBarras(estilo) or false
-    -- con Bartender, la otra forma es otra UI armada: se escribe en su perfil
-    if estilo == "bartender" and antes.estilo == "bartender" and antes.vista ~= vista then
+    -- con Bartender, la forma elegida se escribe en su perfil de cada modo ya armado.
+    -- (1.0.20) siempre que elegís, también la primera vez: si en el asistente elegías el
+    -- modo antes que las barras, el modo quedaba armado con la forma de fábrica (en PvP, a
+    -- la vista) y no se cambiaba
+    if estilo == "bartender" and pj.presets and next(pj.presets) then
         pj.btPend = pj.btPend or {}
-        for m in pairs(pj.presets or {}) do pj.btPend[m] = true end
-        if NS.perfiles and pj.activo and NS.perfiles.ponerBT and IsAddOnLoaded and IsAddOnLoaded("Bartender4") then
+        for m in pairs(pj.presets) do pj.btPend[m] = true end
+        if NS.perfiles and pj.activo and pj.btPend[pj.activo] and NS.perfiles.ponerBT
+           and IsAddOnLoaded and IsAddOnLoaded("Bartender4") then
             if NS.perfiles.ponerBT(pj.activo) then recargar = true end
         end
     end
@@ -416,7 +431,7 @@ function B.esquema(estilo, vista)
     if estilo == "bartender" then
         local bt = PR and PR.PvE and (visibles and PR.PvE.Bartender4Visible or PR.PvE.Bartender4)
         local ab = bt and bt.ActionBars and bt.ActionBars.actionbars or {}
-        for i = 1, 6 do
+        for i = 1, 10 do
             local b = ab[i]
             if b and b.enabled ~= false and b.position then
                 local x0, y0, x1, y1 = cajaBT(b, W, H)
@@ -424,7 +439,7 @@ function B.esquema(estilo, vista)
             end
         end
     else
-        mas(visibles and "barra" or "tenue", W - 42, 98, W - 6, 596)
+        mas("barra", W - 42, 98, W - 6, 596)          -- (1.0.25) la de la derecha, siempre a la vista
         mas(visibles and "barra" or "tenue", W - 84, 98, W - 48, 596)
         if visibles then
             mas("barra", cx - 504, 4, cx + 504, 40)
@@ -491,9 +506,22 @@ function B.preguntar()
             b:SetScript("OnClick", function() B.elegir(o[1], o[2]) end)
             f.botones[o[1] .. "-" .. o[2]] = b
         end
+        -- (1.0.24) todas a la vista un rato, para binds
+        f.todas = E.boton(f, "Ver todas para bindear", 2 * e.ancho + 14, 22)
+        f.todas:SetPoint("BOTTOMLEFT", 14, 12)
+        f.todas:SetScript("OnClick", function() B.alternarTodas(); B.preguntar() end)
+        f.todas:SetScript("OnEnter", function(self)
+            E.ayuda(self, "Todas a la vista", "Pone todas las barras de Bartender a la vista para poner binds o acomodar hechizos. Tocalo de nuevo para dejarlas como estaban. También: /modos barras ver y /modos barras esconder.")
+        end)
+        f.todas:SetScript("OnLeave", E.sinAyuda)
+        f:SetHeight(f:GetHeight() + 34)
         B.ventana = f
     end
     local f, A = B.ventana, NS.addons
+    if f.todas then
+        f.todas:SetText(B.todasAVista() and "Volver a dejarlas como estaban" or "Ver todas para bindear")
+        if B.sinBartender() or (B.estilo() == "bartender" and B.barrasBT and B.barrasBT()) then f.todas:Enable() else f.todas:Disable() end
+    end
     local hayBT = not (A and A.instalado) or A.instalado(A.BT)
     for _, o in ipairs(B.OPCIONES) do
         local b = f.botones[o[1] .. "-" .. o[2]]
@@ -504,6 +532,90 @@ function B.preguntar()
         or (hayBT and "" or "Bartender4 no está instalado."))
     f:Show()
 end
+
+-- ------------------------------------------------------------ todas a la vista (para binds)
+-- (1.0.24) lo pidió (25/10): un botón que te ponga todas las barras de Bartender a la
+-- vista (100%, se pueden tocar) para poner binds o acomodar hechizos, y otro para
+-- volver a dejarlas como estaban. Se hace en el momento (sin recargar), fuera de
+-- combate. Lo de antes se guarda en el personaje (por modo): si salís del juego con
+-- las barras a la vista, "esconder" las deja como estaban igual.
+local function barrasBT()
+    if not (Bartender4 and Bartender4.GetModule) then return nil end
+    local ok, AB = pcall(Bartender4.GetModule, Bartender4, "ActionBars", true)
+    if not (ok and AB and AB.actionbars and AB.db and AB.db.profile and AB.db.profile.actionbars) then return nil end
+    return AB
+end
+B.barrasBT = barrasBT
+function B.todasAVista()
+    local pj = NS.pj
+    return pj and pj.barrasVer and pj.activo and pj.barrasVer[pj.activo] ~= nil or false
+end
+function B.verTodas(si)
+    local pj = NS.pj
+    if not pj then return false end
+    -- (1.0.25) con las de Blizzard: las de abajo y las del costado a la vista (y se pueden tocar)
+    if B.sinBartender() then
+        if InCombatLockdown and InCombatLockdown() then NS.decir("Barras: en combate no se pueden tocar. Probá al salir.") return false end
+        local m = pj.activo or "?"
+        pj.barrasVer = pj.barrasVer or {}
+        if si then
+            pj.barrasVer[m] = pj.barrasVer[m] or { blizzard = true }
+        elseif not pj.barrasVer[m] then
+            return false
+        else
+            pj.barrasVer[m] = nil
+        end
+        B.ponerVista()
+        NS.decir(si and "Barras: todas a la vista para poner binds o acomodar hechizos. Para volver a dejarlas como estaban: /modos barras esconder."
+                 or "Barras: quedaron como estaban.")
+        if NS.cds and NS.cds.avisar then NS.cds.avisar() end
+        if NS.alCambiar then NS.alCambiar() end
+        return true
+    end
+    local AB = barrasBT()
+    if not AB then NS.decir("Barras: esto es para Bartender4 (no está cargado).") return false end
+    if InCombatLockdown and InCombatLockdown() then NS.decir("Barras: en combate no se pueden tocar. Probá al salir.") return false end
+    local m = pj.activo or "?"
+    pj.barrasVer = pj.barrasVer or {}
+    if si then
+        local g = pj.barrasVer[m] or {}
+        for i = 1, 10 do
+            local bar, c = AB.actionbars[i], AB.db.profile.actionbars[i]
+            if bar and c and c.enabled ~= false then
+                if not g[i] then
+                    g[i] = { alpha = c.alpha == nil and 1 or c.alpha, fadeout = c.fadeout and true or false,
+                             clickthrough = c.clickthrough and true or false }
+                end
+                pcall(bar.SetFadeOut, bar, false)
+                bar.faded = nil
+                pcall(bar.SetConfigAlpha, bar, 1)
+                pcall(bar.SetClickThrough, bar, false)
+            end
+        end
+        pj.barrasVer[m] = g
+        NS.decir("Barras: todas a la vista para poner binds o acomodar hechizos. Para volver a dejarlas como estaban: /modos barras esconder.")
+    else
+        local g = pj.barrasVer[m]
+        if not g then return false end
+        for i, v in pairs(g) do
+            local bar = AB.actionbars[i]
+            if bar then
+                pcall(bar.SetClickThrough, bar, v.clickthrough)
+                pcall(bar.SetConfigAlpha, bar, v.alpha)
+                pcall(bar.SetFadeOut, bar, v.fadeout)
+            else
+                local c = AB.db.profile.actionbars[i]
+                if c then c.alpha, c.fadeout, c.clickthrough = v.alpha, v.fadeout, v.clickthrough end
+            end
+        end
+        pj.barrasVer[m] = nil
+        NS.decir("Barras: quedaron como estaban.")
+    end
+    if NS.cds and NS.cds.avisar then NS.cds.avisar() end
+    if NS.alCambiar then NS.alCambiar() end
+    return true
+end
+function B.alternarTodas() return B.verTodas(not B.todasAVista()) end
 
 -- ------------------------------------------------------------ eventos
 local ev = CreateFrame("Frame")

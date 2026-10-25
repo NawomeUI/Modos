@@ -28,6 +28,16 @@ Al final, Recargar. Listo.
 
 Después cambiás de modo con la barrita de Modos o con un bind en Key Bindings, sección Modos.
 
+### Barras escondidas
+
+Con las barras escondidas (Bartender o Blizzard) queda una a la vista en el borde derecho para profesiones, monturas y mascotas. Con Bartender es la 10 (ninguna postura la cambia) y las escondidas quedan juntas a su izquierda. Con las de Blizzard es la de la derecha del todo.
+
+### Antes de armar Mis CDs: primero tus binds
+
+Mis CDs muestra cada hechizo con su bind, y el bind lo saca del botón de la barra donde está ese hechizo. Así que primero poné tus hechizos en las barras y tus binds, y después elegí Mis CDs (`/modos cds`).
+
+Si tus barras están escondidas, `/modos barras ver` las pone todas a la vista (y se pueden tocar) para acomodar hechizos y binds. Cuando termines, `/modos barras esconder` las deja como estaban. También con el botón "Ver todas para bindear" de `/modos barras`.
+
 ## Comandos
 
 | Comando | Qué hace |
@@ -35,8 +45,13 @@ Después cambiás de modo con la barrita de Modos o con un bind en Key Bindings,
 | `/modos` | Ayuda |
 | `/modos instalar` | Abre de nuevo los primeros pasos |
 | `/modos barras` | Barras con o sin Bartender, a la vista o escondidas |
+| `/modos barras ver` | Todas las barras a la vista, para poner binds |
+| `/modos barras esconder` | Las deja como estaban |
 | `/modos rol` | Rol de PvE del talento en uso |
 | `/modos cds` | Qué hechizos y abalorios ves en Mis CDs |
+| `/modos cds guardar <nombre>` | Guarda tu lista de Mis CDs con un nombre (como ABS) |
+| `/modos cds cargar <nombre>` | La vuelve a poner (sirve en una macro) |
+| `/modos cds perfiles` | Los perfiles de Mis CDs de tu clase |
 | `/modos addons` | Qué addons van en cada modo |
 | `/modos auras` | Qué WeakAuras van con cada modo |
 | `/modos auras reinstalar` | Vuelve a poner las WeakAuras que borraste |
@@ -45,7 +60,7 @@ Después cambiás de modo con la barrita de Modos o con un bind en Key Bindings,
 
 ## Qué trae el pack
 
-**Los dos modos:** Modos, ElvUI 6.09 (solo placas, tooltip y en PvE los marcos), WeakAuras 5.22 (NoM0Re), OmniCC, Bartender4, Bagnon, Details, MinimapButtonFrame, Mapster, !ClassColors, BugSack, Talented, Action Bar Saver (ABS), ExtrasUI, ItemLevelSimple, TabPvP, GearScoreLite 3x04, CombatLogFix.
+**Los dos modos:** Modos, ElvUI 6.09 (solo placas, tooltip y en PvE los marcos), WeakAuras 5.22 (NoM0Re), OmniCC, Bartender4, Bagnon, Details, MinimapButtonFrame, Mapster, !ClassColors, BugSack, Talented, Action Bar Saver (ABS), ExtrasUI, ItemLevelSimple, TabPvP, GearScoreLite 3x04, CombatLogFix, AtlasLoot 5.11.04.
 
 **PvE:** MerfinPlus 2.83, Cell r279, DBM, MRT 5.1.4, xCT+ 3.7.1, PallyPower 3.2.21 (versión Improved, anda en Warmane).
 
@@ -55,5 +70,5 @@ Cada addon del pack es de su autor. En este repositorio está solo el código de
 
 ## Notas
 
-- Pensado para 1920x1080. En 1440p y 4K se ve igual (Modos fija la escala).
+- Pensado para 1920x1080. En otras pantallas 16:9 (1600x900, 1366x768, 1440p, 4K) se ve igual (Modos fija la escala). En 16:10 (1440x900, 1680x1050) todavía no: algunas cosas se pisan.
 - Son solo addons: no usa parches del cliente (como Awesome WotLK), así que sirve en servidores que no los permiten, como Warmane.

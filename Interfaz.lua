@@ -344,7 +344,7 @@ local function crearVentana()
     f.bRol:SetScript("OnEnter", function(self)
         E.ayuda(self, "Rol en PvE",
             "Tank, DPS o Heal para el talento en uso: acomoda tu marco, el objetivo, Cell y Mis CDs.",
-            "Tank y DPS: Cell al costado. Heal: Cell abajo al medio en 5 columnas y los marcos más arriba.",
+            "Tank y DPS: Cell al costado. Heal: Cell abajo al medio, debajo del casteo, un grupo por fila.",
             "Tocá para pasar al siguiente. También: /modos rol tank, dps o heal.")
     end)
     f.bRol:SetScript("OnLeave", E.sinAyuda)

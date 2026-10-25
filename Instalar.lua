@@ -34,6 +34,7 @@ I.ADDONS = {
     { "Talented", "los dos modos", true }, { "ActionBarSaver", "los dos modos", true },
     { "GearScoreLite", "los dos modos", true }, { "CombatLogFix", "los dos modos", true },
     { "PallyPower", "PvE, paladines", true },
+    { "AtlasLoot", "los dos modos", true },        -- (1.0.25) lo sumó él (25/10)
 }
 
 local function instalado(n)
