@@ -83,6 +83,8 @@ function I.paquetes(m)
             l[#l + 1] = { nombre = "WA de tu clase (" .. (I.CLASES[c] or c) .. ")", texto = d.clases[c],
                           uid = d.claseUid and d.claseUid[c], id = d.claseId and d.claseId[c], clase = true }
         end
+        -- (1.0.29) las de Modos para tu clase (el rastreo del cazador)
+        for _, x in ipairs(c and d.extras and d.extras[c] or {}) do l[#l + 1] = x end
     end
     return l
 end

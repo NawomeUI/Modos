@@ -169,6 +169,8 @@ function AU.paquetesDe(clase)
                       id = D.claseId and D.claseId[clase], texto = D.clases[clase], clase = true }
     end
     for _, x in ipairs(D.PvP or {}) do l[#l + 1] = x end
+    -- (1.0.29) las de Modos para tu clase (el rastreo del cazador)
+    for _, x in ipairs(clase and D.extras and D.extras[clase] or {}) do l[#l + 1] = x end
     return l
 end
 
