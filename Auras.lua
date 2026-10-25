@@ -262,19 +262,38 @@ end
 
 -- (1.0.4) un paquete de Modos con versión nueva: se saca el viejo (el grupo de
 -- arriba y todo lo de adentro) y se pone el nuevo. Si algo falla, queda el viejo.
-local function reemplazar(ds, idViejo, t, uids)
+-- (1.0.30) lugar: cada aura nueva queda donde tenías la vieja (por su uid).
+AU.LUGAR = { "xOffset", "yOffset", "anchorPoint", "selfPoint", "anchorFrameType", "anchorFrameFrame", "frameStrata" }
+local function reemplazar(ds, idViejo, t, uids, lugar)
     local ids = {}
     recorrer(ds, idViejo, function(d) ids[#ids + 1] = d.id end, {})
-    local guardado = {}
+    local guardado, donde = {}, {}
     for _, id in ipairs(ids) do
         local d = ds[id]
         if type(d) == "table" then
             guardado[id] = d
-            if type(d.uid) == "string" then uids[d.uid] = nil end
+            if type(d.uid) == "string" then
+                uids[d.uid] = nil
+                if lugar then
+                    local p = {}
+                    for _, k in ipairs(AU.LUGAR) do p[k] = d[k] end
+                    donde[d.uid] = p
+                end
+            end
             ds[id] = nil
         end
     end
-    if pcall(AU.poner, ds, t, uids) then return true end
+    if pcall(AU.poner, ds, t, uids) then
+        if lugar then
+            for _, d in pairs(ds) do
+                local p = type(d) == "table" and type(d.uid) == "string" and donde[d.uid]
+                if p then
+                    for _, k in ipairs(AU.LUGAR) do d[k] = p[k] end
+                end
+            end
+        end
+        return true
+    end
     for id, d in pairs(guardado) do
         ds[id] = d
         if type(d.uid) == "string" then uids[d.uid] = true end
@@ -314,7 +333,7 @@ function AU.instalar(forzar)
             local tiene = clave and versiones[clave] or 1
             if x.modos and x.version and tiene < x.version and x.uid and arribaUid[x.uid] then
                 local okl, t = pcall(AU.leer, x.texto)
-                if okl and t and reemplazar(ds, arribaUid[x.uid], t, uids) then
+                if okl and t and reemplazar(ds, arribaUid[x.uid], t, uids, x.lugar) then
                     versiones[clave] = x.version
                     AU.actualizadas[#AU.actualizadas + 1] = x.nombre
                 end
