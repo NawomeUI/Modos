@@ -28,7 +28,7 @@
 local ADDON, NS = ...
 NS = NS or {}
 
-NS.VERSION = "1.0.35"
+NS.VERSION = "1.0.36"
 NS.MODOS = { "PvE", "PvP" }
 
 local DESDE_POSESION, HASTA_POSESION, ULTIMO = 121, 132, 144

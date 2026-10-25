@@ -6,7 +6,8 @@
 -- la lista de addons de la pantalla de personajes) y recarga la interfaz.
 --
 -- De fábrica (la UI preconfigurada): Cell, DBM, MRT, xCT+ y MerfinUI solo en PvE.
--- EasyFrames y Quartz solo en PvP (en PvE: marcos de ElvUI y casteo de la WA de clase).
+-- EasyFrames solo en PvP (en PvE: marcos de ElvUI y casteo de la WA de clase).
+-- (1.0.36) Quartz en los dos: en PvE hace los casteos del objetivo y del foco.
 -- Compact Raid Frames con Enhanced Raid Frames, Gladius, OmniBar, Diminishing
 -- Returns, TrinketCDs, SoundAlerter (o GladiatorlosSA) y BattlegroundTargets solo en PvP.
 -- Lo que no está en la lista no se toca nunca.
@@ -37,7 +38,8 @@ A.FABRICA = {
     BattlegroundTargets = "PvP",       -- lista de enemigos en campos de batalla
     -- (12/10) en PvE los marcos son los de ElvUI y el casteo lo hace la WA de clase
     EasyFrames = "PvP",
-    Quartz = "PvP",
+    Quartz = "ambos",                  -- (1.0.36) en PvE: objetivo y foco
+
 }
 -- por comienzo del nombre: DBM-Core y todos sus módulos
 A.PREFIJOS = { { "DBM-", "PvE" } }
@@ -158,6 +160,9 @@ end
 -- loaded" en el chat). Si está apagado, Modos lo prende y pide recargar.
 A.NECESARIOS = {
     { "MerfinPlus", "tus abalorios sobre tu marco (Equipped Items de Merfin) y las texturas de Merfin" },
+    -- (1.0.36) en PvE los casteos del objetivo y del foco son de Quartz (si lo dejaste
+    -- en "solo PvP" en Addons por modo, no se toca)
+    { "Quartz", "los casteos del objetivo y del foco", modo = "PvE" },
 }
 A.MOTIVOS = {
     DEP_DISABLED = "uno de los addons que necesita está apagado",
@@ -170,9 +175,12 @@ A.MOTIVOS = {
 function A.revisarNecesarios()
     local l = {}
     if not (GetAddOnInfo and IsAddOnLoaded) then return l end
+    local m = NS.pj and NS.pj.activo
     for _, x in ipairs(A.NECESARIOS) do
         local n = x[1]
-        if not IsAddOnLoaded(n) then
+        local r = A.regla(n)
+        local toca = (not x.modo or x.modo == m) and not (r and m and not deseado(r, m))
+        if toca and not IsAddOnLoaded(n) then
             local nombre, _, _, prendido, _, motivo = GetAddOnInfo(n)
             if not nombre or motivo == "MISSING" then
                 l[#l + 1] = { nombre = n, que = "falta", para = x[2] }
@@ -203,7 +211,7 @@ function A.necesariosAlEntrar()
     end
     if #prendidos > 0 and StaticPopupDialogs then
         StaticPopupDialogs["MODOS_RECARGAR_NECESARIOS"] = StaticPopupDialogs["MODOS_RECARGAR_NECESARIOS"] or {
-            text = "Modos: prendí %s (estaba apagado). Hay que recargar para que vuelvan tus abalorios.",
+            text = "Modos: prendí %s (estaba apagado). Hay que recargar para que ande.",
             button1 = "Recargar", button2 = "Después",
             OnAccept = function() ReloadUI() end,
             timeout = 0, whileDead = 1, hideOnEscape = true,

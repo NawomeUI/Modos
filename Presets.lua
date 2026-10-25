@@ -347,7 +347,25 @@ PR.EASYFRAMES = { addon = "EasyFrames", perfil = {
     general = { forceManaBarTexture = true, barTexture = "ElvUI Blank" },
 } }
 -- (12/10) en PvE ni EasyFrames ni Quartz: marcos de ElvUI y el casteo lo hace la WA de clase
-PR.PvE.sv = {}
+-- (1.0.36) Quartz sí, para el objetivo y el foco (los de ElvUI no le gustan). Tu casteo lo
+-- sigue haciendo la WA de clase: Player y lo que va con él apagados. Mismo aspecto que en
+-- PvP. El lugar (debajo del objetivo y del foco, como estaban los de ElvUI) lo pone
+-- Casteos.lua al entrar, según dónde quedaron esos marcos (cambia con la clase y el rol).
+PR.QUARTZ_PVE = {
+    Target = { alto = 16, ancho = 164 },        -- con el ícono, como el de ElvUI
+    Focus = { alto = 18, ancho = 160 },
+}
+PR.PvE.sv = {
+    Quartz3DB = { addon = "Quartz", perfil = {
+        modules = { Player = false, Target = true, Focus = true, Pet = false, Buff = false, GCD = false,
+                    Swing = false, Mirror = false, Latency = false, Range = false, Tradeskill = false, Flight = false },
+        backgroundcolor = { 0, 0, 0 }, backgroundalpha = 1 }, ns = {
+        Target = { h = PR.QUARTZ_PVE.Target.alto, w = PR.QUARTZ_PVE.Target.ancho - PR.QUARTZ_PVE.Target.alto - 4,
+                   iconposition = "left", icongap = 4, fontsize = 11, timefontsize = 10 },
+        Focus = { h = PR.QUARTZ_PVE.Focus.alto, w = PR.QUARTZ_PVE.Focus.ancho - PR.QUARTZ_PVE.Focus.alto - 4,
+                  iconposition = "left", icongap = 4, fontsize = 11, timefontsize = 10 },
+    } },
+}
 
 -- (1.0.2) xCT+ (solo PvE): solo el daño que hacés. Al cambiar de forma el druida
 -- veía 6 líneas (buffs ganados y perdidos, energía y furia): sin buffs, combate,
@@ -441,6 +459,10 @@ PR.PARTES = {
     { id = "foco", v = 1, modos = { PvE = true }, elv = "foco" },
     -- (1.0.33) las auras del objetivo de PvE más grandes y los buffs de un enemigo a la vista
     { id = "objetivo", v = 1, modos = { PvE = true }, elv = "objetivo" },
+    -- (1.0.36) retratos en la mascota, el objetivo del objetivo y los jefes, sin los
+    -- casteos de ElvUI, y Quartz en PvE (el objetivo y el foco)
+    { id = "retratos", v = 1, modos = { PvE = true }, elv = "retratos" },
+    { id = "quartz", v = 1, modos = { PvE = true }, sv = "Quartz3DB" },
 }
 -- (1.0.24) MinimapButtonFrame como lo puso él: los botones en una sola columna
 PR.MBF = { columns_or_rows = 1, sort_by_rows = false }
@@ -535,22 +557,26 @@ PR.MOVERS = {
     DPS = {
         ElvUF_PlayerMover = "BOTTOM,ElvUIParent,BOTTOM,-256,275",
         ElvUF_TargetMover = "BOTTOM,ElvUIParent,BOTTOM,256,275",
-        ElvUF_TargetTargetMover = "BOTTOM,ElvUIParent,BOTTOM,404,275",
-        ElvUF_FocusMover = "BOTTOM,ElvUIParent,BOTTOM,524,275",
+        -- (1.0.36) el objetivo del objetivo con retrato (90 de ancho, pegado al objetivo)
+        -- y el foco 20 más a la derecha para que entre
+        ElvUF_TargetTargetMover = "BOTTOM,ElvUIParent,BOTTOM,413.5,275",
+        ElvUF_FocusMover = "BOTTOM,ElvUIParent,BOTTOM,544,275",
         ElvUF_PetMover = "BOTTOM,ElvUIParent,BOTTOM,-258,227",
         ElvUF_TargetCastbarMover = "BOTTOM,ElvUIParent,BOTTOM,229.5,255",
-        ElvUF_FocusCastbarMover = "BOTTOM,ElvUIParent,BOTTOM,524,253",
+        ElvUF_FocusCastbarMover = "BOTTOM,ElvUIParent,BOTTOM,544,253",
         ElvUF_PlayerCastbarMover = "BOTTOM,ElvUIParent,BOTTOM,0,220",
         BossHeaderMover = "TOPRIGHT,ElvUIParent,TOPRIGHT,-351,-411",
     },
     Heal = {
         ElvUF_PlayerMover = "BOTTOM,ElvUIParent,BOTTOM,-360.5,376",
         ElvUF_TargetMover = "BOTTOM,ElvUIParent,BOTTOM,360.5,376",
-        ElvUF_TargetTargetMover = "BOTTOM,ElvUIParent,BOTTOM,501,376",
+        ElvUF_TargetTargetMover = "BOTTOM,ElvUIParent,BOTTOM,518,376",
         -- (1.0.26) el foco (ahora 160x36) debajo del objetivo, a la derecha del Cell: a la
         -- derecha del objetivo del objetivo no entra sin tocar las barras del costado
         ElvUF_FocusMover = "BOTTOM,ElvUIParent,BOTTOM,400,300",
-        ElvUF_PetMover = "BOTTOM,ElvUIParent,BOTTOM,501,357",
+        -- (1.0.36) la mascota con retrato (160x36): debajo del objetivo del objetivo, a la
+        -- derecha del objetivo y arriba del foco (debajo de tu marco van los CDs chicos de la WA)
+        ElvUF_PetMover = "BOTTOM,ElvUIParent,BOTTOM,560,338",
         ElvUF_TargetCastbarMover = "BOTTOM,ElvUIParent,BOTTOM,334,356",
         ElvUF_FocusCastbarMover = "BOTTOM,ElvUIParent,BOTTOM,400,280",
         ElvUF_PlayerCastbarMover = "BOTTOM,ElvUIParent,BOTTOM,0,74",
@@ -597,9 +623,25 @@ PR.UF_AJUSTES = { units = {
     focus = { width = 160, height = 36, castbar = { width = 160 },
               portrait = { enable = true, overlay = false, fullOverlay = false, style = "3D", width = 36 },
               power = { height = 6 }, customTexts = { UnitPower = { enable = false } } },
-    targettarget = { width = 64, height = 14 },
-    pet = { width = 64, height = 16 },
+    -- (1.0.36) "no me gusta ningún marco sin retrato o algún tipo de ícono" (25/10): el
+    -- objetivo del objetivo, la mascota y los jefes con retrato. El objetivo del objetivo
+    -- 90x26 (la barra sigue de 64), la mascota como el foco (160x36), los jefes 160x33.
+    targettarget = { width = 90, height = 26,
+                     portrait = { enable = true, overlay = false, fullOverlay = false, style = "3D", width = 26 },
+                     customTexts = { UnitName = { yOffset = 0, size = 12 } } },
+    pet = { width = 160, height = 36,
+            portrait = { enable = true, overlay = false, fullOverlay = false, style = "3D", width = 36 },
+            power = { height = 6 },
+            customTexts = { UnitName = { enable = true, justifyH = "RIGHT", xOffset = -2, yOffset = 13, size = 13,
+                                         text_format = "[name:medium]" },
+                            UnitHealth = { justifyH = "RIGHT", xOffset = -2, yOffset = -3, text_format = "[health:percent]" } } },
+    boss = { portrait = { enable = true, overlay = false, fullOverlay = false, style = "3D", width = 33 } },
 } }
+-- (1.0.36) los casteos del objetivo y del foco los hace Quartz (25/10: "las barras de cast
+-- no me gustan en ElvUI, poneme exactamente como están en PvE pero todo hecho con Quartz"):
+-- los de ElvUI apagados. Quartz los pone en el mismo lugar (Casteos.lua)
+PR.UF_AJUSTES.units.target.castbar.enable = false
+PR.UF_AJUSTES.units.focus.castbar.enable = false
 PR.PLACAS_NPC = { debuffs = copia(PR.PvE.ElvDB.nameplates.units.ENEMY_PLAYER.debuffs) }
 PR.PLACAS_NPC.debuffs.filters = { priority = "Blacklist,blockNoDuration,Personal" }
 -- lo que ponen las partes "tooltip" y "pve1" en los personajes que ya tienen la UI
@@ -611,6 +653,11 @@ PR.AJUSTES_ELV = {
     pve1 = { PvE = { unitframe = PR.UF_AJUSTES, nameplates = { units = { ENEMY_NPC = PR.PLACAS_NPC } } } },
     pve2 = { PvE = { unitframe = PR.UF_AJUSTES } },          -- (1.0.13) marcos más chicos, nombre y recurso
     foco = { PvE = { unitframe = { units = { focus = PR.UF_AJUSTES.units.focus } } } },   -- (1.0.26)
+    -- (1.0.36) retratos y casteos de Quartz
+    retratos = { PvE = { unitframe = { units = {
+        target = { castbar = { enable = false } }, focus = { castbar = { enable = false } },
+        targettarget = PR.UF_AJUSTES.units.targettarget, pet = PR.UF_AJUSTES.units.pet,
+        boss = PR.UF_AJUSTES.units.boss } } } },
     -- (1.0.33) solo las auras del objetivo (tamaño y los buffs de un enemigo)
     objetivo = { PvE = { unitframe = { units = { target = {
         buffs = { sizeOverride = PR.UF_AJUSTES.units.target.buffs.sizeOverride,

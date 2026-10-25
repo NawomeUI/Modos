@@ -60,11 +60,11 @@ Si tus barras están escondidas, `/modos barras ver` las pone todas a la vista (
 
 ## Qué trae el pack
 
-**Los dos modos:** Modos, ElvUI 6.09 (solo placas, tooltip y en PvE los marcos), WeakAuras 5.22 (NoM0Re), OmniCC, Bartender4, Bagnon, Details, MinimapButtonFrame, Mapster, !ClassColors, BugSack, Talented, Action Bar Saver (ABS), ExtrasUI, ItemLevelSimple, TabPvP, GearScoreLite 3x04, CombatLogFix, AtlasLoot 5.11.04, All Stats 1.1 (todas las estadísticas al lado del personaje).
+**Los dos modos:** Modos, ElvUI 6.09 (solo placas, tooltip y en PvE los marcos), WeakAuras 5.22 (NoM0Re), OmniCC, Bartender4, Bagnon, Details, MinimapButtonFrame, Mapster, !ClassColors, BugSack, Talented, Action Bar Saver (ABS), ExtrasUI, ItemLevelSimple, TabPvP, GearScoreLite 3x04, CombatLogFix, AtlasLoot 5.11.04, All Stats 1.1 (todas las estadísticas al lado del personaje), Quartz 3.0.3.1 (en PvE los casteos del objetivo y del foco, en PvP también el tuyo).
 
 **PvE:** MerfinPlus 2.83, Cell r279, DBM, MRT 5.1.4, xCT+ 3.7.1, PallyPower 3.2.21 (versión Improved, anda en Warmane).
 
-**PvP:** Gladius 1.2.0, EasyFrames, Quartz 3.0.3.1, Compact Raid Frames 1.14 con !!!ClassicAPI 1.28 y Enhanced Raid Frames 1.8, SoundAlerter (corregido).
+**PvP:** Gladius 1.2.0, EasyFrames, Compact Raid Frames 1.14 con !!!ClassicAPI 1.28 y Enhanced Raid Frames 1.8, SoundAlerter (corregido).
 
 Cada addon del pack es de su autor. En este repositorio está solo el código de Modos.
 

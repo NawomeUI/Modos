@@ -527,6 +527,8 @@ function R.aplicar()
     R.avisarAuras()
     R.ponerMascota()
     if NS.barras and NS.barras.apartar then NS.barras.apartar() end
+    -- (1.0.36) los casteos de Quartz debajo del objetivo y del foco (los movers cambian con el rol)
+    if NS.casteos and NS.despues then NS.despues(1, "casteosRol", NS.casteos.acomodar) end
     if importo or ajusto or vida or estilo then
         recargar(importo and "Importé el Cell de Merfin y lo acomodé para tu rol."
                  or ajusto and "Acomodé los diseños de Cell."

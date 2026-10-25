@@ -26,7 +26,7 @@ I.ADDONS = {
     { "WeakAuras", "los dos modos" }, { "WeakAurasOptions", "los dos modos" },
     { "OmniCC", "los dos modos" }, { "MerfinPlus", "PvE" },
     { "Cell", "PvE" }, { "DBM-Core", "PvE" },
-    { "Gladius", "PvP" }, { "EasyFrames", "PvP" }, { "Quartz", "PvP" },
+    { "Gladius", "PvP" }, { "EasyFrames", "PvP" }, { "Quartz", "los dos modos" },
     { "CompactRaidFrame", "PvP" }, { "!!!ClassicAPI", "PvP" }, { "EnhancedRaidFrames", "PvP" },
     { "Bagnon", "los dos modos", true }, { "Details", "los dos modos", true },
     { "MinimapButtonFrame", "los dos modos", true }, { "MRT", "PvE", true }, { "xCT+", "PvE", true },
