@@ -39,7 +39,8 @@ A.FABRICA = {
     NeedToKnow = "nunca",              -- las WeakAuras de Modos
     LoseControl = "nunca",             -- Alertas PvP Equipo (tu CC)
     Doom_CooldownPulse = "nunca",      -- Alertas PvP (el CD que vuelve)
-    MoveAnything = "nunca",            -- el lugar de los marcos lo pone Modos
+    -- (1.0.39) MoveAnything ya no: acomodaba muchos marcos de su UI de antes y apagarlo le
+    -- movió todo. Con jugador, objetivo y foco se arregla Perfiles (soltarDeMA / avisarMA)
     FriskesUI = "nunca",
     SoundAlerter = "PvP",              -- voces de los CDs enemigos (el que usa él)
     GladiatorlosSA = "PvP",            -- lo mismo, por si algún personaje lo tiene

@@ -140,7 +140,7 @@ function R.ponerElvUI()
 end
 
 -- ------------------------------------------------------------ Cell
-R.CELL_VERSION = 8
+R.CELL_VERSION = 9
 R.CELL = {
     Heal = { party = "Healer: Party || Full HD", raid = "Healer: Raid10-25 || Full HD", raid40 = "Healer: Raid40 || Full HD" },
     DPS = { party = "DPS/Tank: Party || Full HD", raid = "DPS/Tank: Raid10-25 || Full HD", raid40 = "DPS/Tank: Raid40 || Full HD" },
@@ -184,10 +184,15 @@ R.CELL_DISENOS = {
         position = { "BOTTOM", -247, 356 }, spacingX = 0, spacingY = 0, unitsPerColumn = 5, maxColumns = 8, powerSize = 4 },
     ["Healer: Raid40 || Full HD"] = { orientation = "horizontal", size = { 103, 33 }, anchor = "TOPLEFT",
         position = { "BOTTOM", -247, 356 }, spacingX = 0, spacingY = 0, unitsPerColumn = 5, maxColumns = 8, powerSize = 3 },
-    ["DPS/Tank: Party || Full HD"] = { orientation = "vertical", size = { 160, 56 }, anchor = "BOTTOMLEFT",
+    -- (1.0.39) DPS/Tank más chicos (25/10, en una banda de 10 desparramada en 5 grupos:
+    -- "está bien que te dije que los quería grandes, pero ¿no están enormes?"): banda de
+    -- 150x56 a 120x46 y grupo de 160x56 a 130x48, y en banda todos juntos de a 5 por
+    -- columna (combineGroups), sin una columna por grupo: en 10, dos columnas.
+    ["DPS/Tank: Party || Full HD"] = { orientation = "vertical", size = { 130, 48 }, anchor = "BOTTOMLEFT",
         position = { "BOTTOMLEFT", 4, 335 }, spacingX = 0, spacingY = 0, unitsPerColumn = 5, maxColumns = 8, powerSize = 4 },
-    ["DPS/Tank: Raid10-25 || Full HD"] = { orientation = "vertical", size = { 150, 56 }, anchor = "BOTTOMLEFT",
-        position = { "BOTTOMLEFT", 4, 335 }, spacingX = 0, spacingY = 0, unitsPerColumn = 5, maxColumns = 8, powerSize = 4 },
+    ["DPS/Tank: Raid10-25 || Full HD"] = { orientation = "vertical", size = { 120, 46 }, anchor = "BOTTOMLEFT",
+        position = { "BOTTOMLEFT", 4, 335 }, spacingX = 0, spacingY = 0, unitsPerColumn = 5, maxColumns = 8, powerSize = 4,
+        combineGroups = true },
     ["DPS/Tank: Raid40 || Full HD"] = { orientation = "vertical", size = { 100, 46 }, anchor = "BOTTOMLEFT",
         position = { "BOTTOMLEFT", 4, 335 }, spacingX = 0, spacingY = 0, unitsPerColumn = 5, maxColumns = 8, powerSize = 4 },
 }
@@ -205,7 +210,7 @@ end
 -- grupo: arriba no tapa ninguna). Se ancla al primer marco (arriba a la izquierda).
 R.CELL_TOOLTIP = {
     Heal = { "TOPLEFT", "Cell", "TOPLEFT", 5 * 103 + 6, 0 },
-    DPS = { "BOTTOMLEFT", "Cell", "BOTTOMLEFT", 0, 5 * 56 + 6 },
+    DPS = { "BOTTOMLEFT", "Cell", "BOTTOMLEFT", 0, 5 * 48 + 6 },
 }
 R.CELL_TOOLTIP.Tank = R.CELL_TOOLTIP.DPS
 
@@ -322,13 +327,15 @@ end
 -- filas: 2 o 3, ic: íconos, rol: el rol y la marca, fn: letra del nombre, fv: letra de
 -- la vida, hots: cuántos, cds: cuántos CDs de afuera (2), sinCds: sin CDs de afuera (la
 -- vida va a la derecha), sinMarca
-R.CELL_ESTILO_VERSION = 5
+R.CELL_ESTILO_VERSION = 6
 R.CELL_MEDIDAS = {
     ["Healer: Raid10-25 || Full HD"] = { filas = 3, ic = 16, rol = 12, fn = 13, fv = 11, hots = 3, cds = 2 },
     ["Healer: Party || Full HD"] = { filas = 3, ic = 18, rol = 13, fn = 14, fv = 12, hots = 3, cds = 1 },
     ["Healer: Raid40 || Full HD"] = { ic = 14, rol = 11, fn = 11, fv = 10, hots = 2, sinCds = true, sinMarca = true },
-    ["DPS/Tank: Raid10-25 || Full HD"] = { ic = 22, rol = 15, fn = 14, fv = 12, hots = 2 },
-    ["DPS/Tank: Party || Full HD"] = { ic = 22, rol = 15, fn = 15, fv = 12, hots = 2 },
+    -- (1.0.39) más chicos: íconos de 18 y 20, un solo HoT/escudo (en DPS casi no hay)
+    -- para que el nombre tenga lugar
+    ["DPS/Tank: Raid10-25 || Full HD"] = { ic = 18, rol = 13, fn = 13, fv = 11, hots = 1 },
+    ["DPS/Tank: Party || Full HD"] = { ic = 20, rol = 14, fn = 14, fv = 12, hots = 1 },
     ["DPS/Tank: Raid40 || Full HD"] = { ic = 16, rol = 12, fn = 12, fv = 10, hots = 2, sinCds = true, sinMarca = true },
 }
 -- las cajas de cada cosa dentro del marco (x, y desde arriba a la izquierda, ancho y
