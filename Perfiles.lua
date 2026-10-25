@@ -810,12 +810,64 @@ local function engancharEscala(f)
     end)
 end
 
+-- (1.0.37) MoveAnything con el jugador, el objetivo o el foco guardados: los pone él y
+-- Modos no los toca (25/10, en PvP su marco quedaba abajo al medio, TOPLEFT 474,-673 de
+-- MoveAnything: la tabla de PvP de Modos es una copia de la "default" de su UI de antes,
+-- que traía esos marcos). Si la tabla en uso es la de Modos para ese modo y el modo tiene
+-- su lugar (la UI armada), se sacan de ahí una vez (si después los movés con
+-- MoveAnything a propósito, quedan). Si es otra (la de siempre), se avisa y se ofrece
+-- apagarlo: MoveAnything no viene en el pack.
+P.NOMBRES_MARCOS = { PlayerFrame = "tu marco", TargetFrame = "el objetivo", FocusFrame = "el foco" }
+function P.soltarDeMA(m)
+    local pj = NS.pj
+    if not (m and pj and pj.marcos and pj.marcos[m] and hayMA()) then return false end
+    pj.maSoltado = pj.maSoltado or {}
+    if pj.maSoltado[m] then return false end
+    local n = actualMA()
+    local t = n and MoveAnything_CharacterSettings[n]
+    if not (t and n == nombreMA(m)) then return false end
+    local saco = false
+    for _, f in ipairs(P.MARCOS) do
+        if pj.marcos[m][f] and t[f] ~= nil then t[f] = nil; saco = true end
+    end
+    pj.maSoltado[m] = true
+    if saco then
+        pcall(function()
+            MovAny:ResetProfile(true)
+            MovAny.frameOptions = t
+            MovAny:SyncAllFrames(true)
+        end)
+    end
+    return saco
+end
+function P.avisarMA(lista)
+    local pj = NS.pj
+    if #lista == 0 or P.avisoMA or (pj and pj.dejarMA) then return end
+    P.avisoMA = true
+    local que = table.concat(lista, ", ")
+    if NS.decir then
+        NS.decir("MoveAnything (de tu UI de antes, no viene en el pack) está poniendo " .. que
+            .. " en otro lugar, y ahí Modos no los mueve.")
+    end
+    if not (StaticPopupDialogs and StaticPopup_Show) then return end
+    StaticPopupDialogs["MODOS_APAGAR_MA"] = StaticPopupDialogs["MODOS_APAGAR_MA"] or {
+        text = "Modos: MoveAnything (de tu UI de antes, no viene en el pack) está poniendo %s en otro lugar. ¿Lo apago? Se recarga la interfaz.",
+        button1 = "Apagar y recargar", button2 = "Dejarlo",
+        OnAccept = function() if DisableAddOn then DisableAddOn("MoveAnything") end; ReloadUI() end,
+        OnCancel = function() if NS.pj then NS.pj.dejarMA = true end end,
+        timeout = 0, whileDead = 1, hideOnEscape = true,
+    }
+    StaticPopup_Show("MODOS_APAGAR_MA", que)
+end
+
 function P.ponerMarcos(m)
     local pj = NS.pj
     if not (pj and pj.marcos and m) then return end
     if InCombatLockdown and InCombatLockdown() then P.entrarLuego = true; return end
     if not pj.marcos.origen then P.anotarMarcos(nil) end
+    P.soltarDeMA(m)
     local t = pj.marcos[m] or pj.marcos.origen
+    local deOtro = {}
     -- con EasyFrames el tamaño lo pone él: se respeta y se corre el punto para que
     -- en pantalla quede en el mismo lugar. Sin él, Modos pone el tamaño del preset.
     local conEF = IsAddOnLoaded and IsAddOnLoaded("EasyFrames")
@@ -826,8 +878,11 @@ function P.ponerMarcos(m)
         if f and l and not deMA(n) then
             local e = l[5] or 1
             pos[n] = { f = f, l = l, x = l[3] * e, y = l[4] * e, r = conEF and relacion(f) or e }
+        elseif f and l and pj.marcos[m] then
+            deOtro[#deOtro + 1] = P.NOMBRES_MARCOS[n] or n
         end
     end
+    P.avisarMA(deOtro)
     -- jugador y objetivo lado a lado: que no se encimen aunque sean más grandes
     local pj_, ob = pos.PlayerFrame, pos.TargetFrame
     if pj_ and ob and pj_.l[1] == "CENTER" and pj_.l[2] == "CENTER" and ob.l[1] == "CENTER" and ob.l[2] == "CENTER"
@@ -1174,10 +1229,18 @@ function P.alEntrar()
         local rb = {}
         if P.ponerBTPendiente(pj.activo, rb) and NS.recargarSiHace then NS.recargarSiHace(pj.activo, rb) end
     end
+    -- (1.0.37) primero la tabla de MoveAnything del modo y después los marcos. Al revés,
+    -- después de un /reload MoveAnything todavía tenía la de siempre y Modos no los movía
+    P.ponerMAModo()
     if pj and pj.activo and pj.marcos then
         if InCombatLockdown and InCombatLockdown() then P.entrarLuego = true
         else P.ponerMarcos(pj.activo) end
     end
+end
+
+-- al entrar, MoveAnything vuelve a su tabla de siempre: se pone la del modo en uso
+function P.ponerMAModo()
+    local pj = NS.pj
     if not (pj and pj.activo and hayMA()) then return end
     local ea = datos()[MA]
     local objetivo = ea and ea.sigue and ea[pj.activo]
