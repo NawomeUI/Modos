@@ -240,8 +240,9 @@ end
 -- ------------------------------------------------------------ a la vista o escondidas (Blizzard)
 local ABAJO = { "ActionButton", "MultiBarBottomLeftButton", "MultiBarBottomRightButton" }
 -- (1.0.25) con las barras escondidas, la de la derecha del todo (MultiBarRight) queda a
--- la vista para profesiones, monturas y mascotas (como la 10 con Bartender). La otra del
--- costado aparece con el mouse.
+-- la vista para profesiones, monturas y mascotas (como la 2 con Bartender).
+-- (1.0.28) la otra del costado escondida del todo (antes aparecía con el mouse): como
+-- las de abajo, solo con /modos barras ver.
 local COSTADO = { "MultiBarLeft" }
 local FIJA = "MultiBarRight"
 local function botonesAbajo(fn)
@@ -249,25 +250,16 @@ local function botonesAbajo(fn)
         for i = 1, 12 do local b = _G[pre .. i]; if b then fn(b) end end
     end
 end
-local vigia
-local function costadoConMouse(si)
+local function costadoEscondido(si)
     if _G[FIJA] and _G[FIJA].SetAlpha then _G[FIJA]:SetAlpha(1) end
-    if not si then
-        if vigia then vigia:SetScript("OnUpdate", nil) end
-        for _, n in ipairs(COSTADO) do if _G[n] then _G[n]:SetAlpha(1) end end
-        return
-    end
-    vigia = vigia or CreateFrame("Frame")
-    local t = 0
-    vigia:SetScript("OnUpdate", function(_, dt)
-        t = t + dt
-        if t < 0.1 then return end
-        t = 0
-        for _, n in ipairs(COSTADO) do
-            local f = _G[n]
-            if f then f:SetAlpha((MouseIsOver and MouseIsOver(f)) and 1 or 0) end
+    for _, n in ipairs(COSTADO) do
+        local f = _G[n]
+        if f and f.SetAlpha then f:SetAlpha(si and 0 or 1) end
+        for i = 1, 12 do
+            local b = _G[n .. "Button" .. i]
+            if b and b.EnableMouse then b:EnableMouse(not si) end
         end
-    end)
+    end
 end
 
 -- las 4 barras de más de Blizzard (Interfaz, Barras de acción) prendidas
@@ -296,7 +288,7 @@ function B.ponerVista()
         botonesAbajo(poner)
         B.ponerExtra()
         if extra then for _, b in ipairs(extra.botones) do poner(b) end end
-        costadoConMouse(not ver)
+        costadoEscondido(not ver)
     end)
 end
 
@@ -433,14 +425,15 @@ function B.esquema(estilo, vista)
         local ab = bt and bt.ActionBars and bt.ActionBars.actionbars or {}
         for i = 1, 10 do
             local b = ab[i]
-            if b and b.enabled ~= false and b.position then
+            -- (1.0.28) las escondidas del todo (alpha 0) no se dibujan
+            if b and b.enabled ~= false and b.position and b.alpha ~= 0 then
                 local x0, y0, x1, y1 = cajaBT(b, W, H)
                 mas((b.fadeout and b.fadeoutalpha == 0) and "tenue" or "barra", x0, y0, x1, y1)
             end
         end
     else
         mas("barra", W - 42, 98, W - 6, 596)          -- (1.0.25) la de la derecha, siempre a la vista
-        mas(visibles and "barra" or "tenue", W - 84, 98, W - 48, 596)
+        if visibles then mas("barra", W - 84, 98, W - 48, 596) end      -- (1.0.28) escondida del todo
         if visibles then
             mas("barra", cx - 504, 4, cx + 504, 40)
             mas("barra", cx - 504, 46, cx - 6, 82)
@@ -492,7 +485,7 @@ function B.preguntar()
         local x = E.texto(f, "chico")
         x:SetPoint("TOPLEFT", 14, -36)
         x:SetWidth(ancho - 28)
-        x:SetText("Con Bartender o con las de Blizzard (si tus binds están ahí). Azul: se ve. Azul tenue: aparece con el mouse. Verde: Mis CDs. Los binds andan igual. Se cambia con /modos barras.")
+        x:SetText("Con Bartender o con las de Blizzard (si tus binds están ahí). Azul: se ve. Verde: Mis CDs. Las escondidas no se ven ni con el mouse, los binds andan igual. Para bindear: Ver todas.")
         f.ahora = E.texto(f, "chico")
         f.ahora:SetPoint("TOPLEFT", 14, -88)
         f.botones, f.dibujos = {}, {}

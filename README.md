@@ -30,7 +30,7 @@ Después cambiás de modo con la barrita de Modos o con un bind en Key Bindings,
 
 ### Barras escondidas
 
-Con las barras escondidas (Bartender o Blizzard) queda una a la vista en el borde derecho para profesiones, monturas y mascotas. Con Bartender es la 10 (ninguna postura la cambia) y las escondidas quedan juntas a su izquierda. Con las de Blizzard es la de la derecha del todo.
+Con las barras escondidas (Bartender o Blizzard) queda una a la vista en el borde derecho para profesiones, monturas y mascotas. Con Bartender es la 2 (ninguna postura la cambia) y las escondidas quedan juntas a su izquierda. Con las de Blizzard es la de la derecha del todo. Las escondidas no aparecen ni con el mouse: para verlas, `/modos barras ver` o el botón Barras de la ventana de Modos.
 
 ### Antes de armar Mis CDs: primero tus binds
 

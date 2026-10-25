@@ -175,18 +175,21 @@ PR.PvE = {
     -- profesiones, monturas y mascotas, la 10 (ninguna postura la cambia: Bartender pasa
     -- la 1 a la 7, 8 o 9 con las posturas, nunca a la 10), y las escondidas juntas a su
     -- izquierda, así al ponerlas a la vista para bindear (/modos barras ver) se ven todas.
+    -- (1.0.28) cambió (25/10): la que queda a la vista es la 2 (tampoco la cambia
+    -- ninguna postura) y las otras escondidas del todo, sin aparecer con el mouse
+    -- ("no habíamos descartado eso?"). Para bindear o acomodar hechizos: /modos barras ver
+    -- (o el botón Barras de la ventana de Modos). La 10 apagada otra vez.
     Bartender4 = {
         ActionBars = { actionbars = {
-            [1] = invisible({ position = costado(2), rows = 12 }),
-            [2] = invisible({ position = costado(3), rows = 12 }),
-            [3] = invisible({ position = costado(4), rows = 12 }),
-            [4] = invisible({ position = costado(5), rows = 12 }),
-            [5] = invisible({ position = costado(6), rows = 12 }),
-            [6] = invisible({ position = costado(7), rows = 12 }),
+            [2] = aLaVista({ position = costado(1), rows = 12 }),
+            [1] = escondida({ position = costado(2), rows = 12 }),
+            [3] = escondida({ position = costado(3), rows = 12 }),
+            [4] = escondida({ position = costado(4), rows = 12 }),
+            [5] = escondida({ position = costado(5), rows = 12 }),
+            [6] = escondida({ position = costado(6), rows = 12 }),
             -- (1.0.13) las barras 7 a 9 (páginas de posturas) apagadas: la 1 ya cambia
             -- sola con la postura. No aparecen ni con el mouse.
-            [7] = { enabled = false }, [8] = { enabled = false }, [9] = { enabled = false },
-            [10] = aLaVista({ position = costado(1), rows = 12 }),
+            [7] = { enabled = false }, [8] = { enabled = false }, [9] = { enabled = false }, [10] = { enabled = false },
         } },
         -- (12/10) posturas/formas/auras de pala, pet y totems: abajo a la izquierda,
         -- arriba del chat y fuera del medio (ahí van la WA de clase y Mis CDs).
@@ -432,7 +435,8 @@ PR.PARTES = {
     { id = "mbf", v = 1, modos = { PvE = true, PvP = true }, mbf = true, siempre = true, una = true },
     -- (1.0.25) con Bartender escondidas: la 10 a la vista en el borde y las escondidas
     -- juntas a su izquierda (todas las barras de acción del preset, una vez)
-    { id = "barras3", v = 1, modos = { PvE = true, PvP = true }, bt = { "ActionBars" }, soloEscondidas = true },
+    -- (1.0.28) v2: la 2 a la vista y las otras escondidas del todo (sin el mouse)
+    { id = "barras3", v = 2, modos = { PvE = true, PvP = true }, bt = { "ActionBars" }, soloEscondidas = true },
     -- (1.0.26) el foco de PvE más grande y con retrato
     { id = "foco", v = 1, modos = { PvE = true }, elv = "foco" },
 }
@@ -499,13 +503,15 @@ PR.PvP.ElvDB.general.totems = { enable = false }       -- (1.0.13) los totems de
 PR.PvP.Bartender4Visible = PR.PvP.Bartender4
 PR.PvP.Bartender4 = copia(PR.PvP.Bartender4Visible)
 for i = 1, 6 do escondida(PR.PvP.Bartender4.ActionBars.actionbars[i]) end
--- (1.0.25) escondidas como en PvE: juntas en columnas al costado derecho, a la
--- izquierda de la 10, que queda a la vista en el borde (profesiones, monturas, mascotas)
-for i = 1, 6 do
+-- (1.0.25) escondidas como en PvE: juntas en columnas al costado derecho.
+-- (1.0.28) la 2 a la vista en el borde (profesiones, monturas, mascotas) y las otras a
+-- su izquierda, escondidas del todo
+for i, col in pairs({ [2] = 1, [1] = 2, [3] = 3, [4] = 4, [5] = 5, [6] = 6 }) do
     local b = PR.PvP.Bartender4.ActionBars.actionbars[i]
-    b.position, b.rows = costado(i + 1), 12
+    b.position, b.rows = costado(col), 12
 end
-PR.PvP.Bartender4.ActionBars.actionbars[10] = aLaVista({ position = costado(1), rows = 12 })
+aLaVista(PR.PvP.Bartender4.ActionBars.actionbars[2])
+PR.PvP.Bartender4.ActionBars.actionbars[10] = { enabled = false }
 PR.PvE.privado.unitframe = { enable = true }
 PR.PvE.ElvDB.general.totems = { enable = false }       -- los totems los muestra la WA del chamán
 -- dónde van los marcos según el rol (los de Merfin para 1080p). Tank y DPS: tu

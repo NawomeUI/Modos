@@ -6,7 +6,7 @@ local E = NS.E
 local C = E.C
 
 local barrita, ventana, vPerfiles, vAddons
-local ALTO = 500   -- alto de la ventana principal
+local ALTO = 524   -- alto de la ventana principal (1.0.28: +24, la fila de las barras)
 
 -- ------------------------------------------------------------ posición
 -- la posición la guarda Modos (el juego no, para que no haya dos que la pisen)
@@ -264,6 +264,16 @@ local function refrescarVentana()
         ventana.addonsT:SetText(#l == 0 and "Addons por modo: ninguno instalado de la lista."
             or ("Addons por modo: "..pve.." solo en PvE, "..pvp.." solo en PvP."))
     end
+    if ventana.barrasT and NS.barras then
+        local B = NS.barras
+        local es, vi = B.estilo(), B.vista()
+        local nom = (es == "bartender" and "Bartender" or (es == "blizzard" and "Blizzard") or "sin elegir")
+            .. (vi and (", " .. (vi == "visibles" and "a la vista" or "escondidas")) or "")
+        local todas = B.todasAVista and B.todasAVista()
+        ventana.barrasT:SetText("Barras: " .. nom .. (todas and E.cod(C.ok, " · todas a la vista") or ""))
+        ventana.bBarras:SetText(todas and "Esconder" or "Ver todas")
+        if es then ventana.bBarras:Enable() else ventana.bBarras:Disable() end
+    end
     local rol = NS.rol and NS.rol.actual()
     ventana.rolT:SetText("Rol en PvE (talento "..(NS.rol and NS.rol.grupo() or 1).."): "..(rol or "sin elegir"))
     ventana.bRol:SetText(rol or "Elegir")
@@ -334,6 +344,22 @@ local function crearVentana()
     f.ultimo2:SetPoint("TOPLEFT", f.ultimo1, "BOTTOMLEFT", 0, -4)
     f.ultimo2:SetWidth(358)
 
+    -- (1.0.28) todas las barras a la vista para poner binds o acomodar hechizos
+    f.barrasT = E.texto(f, "chico")
+    f.barrasT:SetPoint("BOTTOMLEFT", 16, 152)
+    f.bBarras = E.boton(f, "Ver todas", 70, 20)
+    f.bBarras:SetPoint("BOTTOMRIGHT", -16, 148)
+    f.bBarras:SetScript("OnClick", function()
+        if NS.barras and NS.barras.alternarTodas then NS.barras.alternarTodas() end
+        refrescarVentana()
+    end)
+    f.bBarras:SetScript("OnEnter", function(self)
+        E.ayuda(self, "Barras",
+            "Pone todas las barras a la vista y se pueden tocar, para poner binds o acomodar hechizos.",
+            "Tocalo de nuevo para dejarlas como estaban. También: /modos barras ver y /modos barras esconder.")
+    end)
+    f.bBarras:SetScript("OnLeave", E.sinAyuda)
+
     f.rolT = E.texto(f, "chico")
     f.rolT:SetPoint("BOTTOMLEFT", 16, 128)
     f.bRol = E.boton(f, "DPS/Tank", 70, 20)
@@ -372,7 +398,7 @@ local function crearVentana()
             "Elegí cuáles cambian con el modo.")
     end)
     f.bPerfiles:SetScript("OnLeave", E.sinAyuda)
-    E.linea(f, -(ALTO - 150))
+    E.linea(f, -(ALTO - 174))
     E.linea(f, -(ALTO - 66))
 
     f.chkMostrar = casillaConTexto(f, "Mostrar la barrita", 16, 42, function(v)
