@@ -60,7 +60,7 @@ Si tus barras están escondidas, `/modos barras ver` las pone todas a la vista (
 
 ## Qué trae el pack
 
-**Los dos modos:** Modos, ElvUI 6.09 (solo placas, tooltip y en PvE los marcos), WeakAuras 5.22 (NoM0Re), OmniCC, Bartender4, Bagnon, Details, MinimapButtonFrame, Mapster, !ClassColors, BugSack, Talented, Action Bar Saver (ABS), ExtrasUI, ItemLevelSimple, TabPvP, GearScoreLite 3x04, CombatLogFix, AtlasLoot 5.11.04.
+**Los dos modos:** Modos, ElvUI 6.09 (solo placas, tooltip y en PvE los marcos), WeakAuras 5.22 (NoM0Re), OmniCC, Bartender4, Bagnon, Details, MinimapButtonFrame, Mapster, !ClassColors, BugSack, Talented, Action Bar Saver (ABS), ExtrasUI, ItemLevelSimple, TabPvP, GearScoreLite 3x04, CombatLogFix, AtlasLoot 5.11.04, All Stats 1.1 (todas las estadísticas al lado del personaje).
 
 **PvE:** MerfinPlus 2.83, Cell r279, DBM, MRT 5.1.4, xCT+ 3.7.1, PallyPower 3.2.21 (versión Improved, anda en Warmane).
 

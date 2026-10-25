@@ -35,6 +35,7 @@ I.ADDONS = {
     { "GearScoreLite", "los dos modos", true }, { "CombatLogFix", "los dos modos", true },
     { "PallyPower", "PvE, paladines", true },
     { "AtlasLoot", "los dos modos", true },        -- (1.0.25) lo sumó él (25/10)
+    { "AllStats", "los dos modos", true },         -- (1.0.27) todas las estadísticas al lado del personaje
 }
 
 local function instalado(n)
