@@ -28,11 +28,19 @@ A.FABRICA = {
     CompactRaidFrame = "PvP",
     EnhancedRaidFrames = "PvP",
     Gladius = "PvP",
-    OmniBar = "PvP",
-    OmniBar_Options = "PvP",
     DiminishingReturns = "PvP",
     DiminishingReturns_Config = "PvP",
-    TrinketCDs = "PvP",
+    -- (1.0.38) apagados en los dos modos: los reemplaza el pack (25/10, en su cuenta
+    -- principal tenía prendidos addons de su UI de antes y le volvían a aparecer:
+    -- "no está desactivando el OmniBar y otras cosas")
+    OmniBar = "nunca",                 -- Alertas PvP CDs
+    OmniBar_Options = "nunca",
+    TrinketCDs = "nunca",              -- el trinket en Gladius y en Alertas PvP
+    NeedToKnow = "nunca",              -- las WeakAuras de Modos
+    LoseControl = "nunca",             -- Alertas PvP Equipo (tu CC)
+    Doom_CooldownPulse = "nunca",      -- Alertas PvP (el CD que vuelve)
+    MoveAnything = "nunca",            -- el lugar de los marcos lo pone Modos
+    FriskesUI = "nunca",
     SoundAlerter = "PvP",              -- voces de los CDs enemigos (el que usa él)
     GladiatorlosSA = "PvP",            -- lo mismo, por si algún personaje lo tiene
     BattlegroundTargets = "PvP",       -- lista de enemigos en campos de batalla
@@ -43,7 +51,24 @@ A.FABRICA = {
 }
 -- por comienzo del nombre: DBM-Core y todos sus módulos
 A.PREFIJOS = { { "DBM-", "PvE" } }
-A.REGLAS = { "PvE", "PvP", "ambos" }
+A.REGLAS = { "PvE", "PvP", "ambos", "nunca" }
+
+-- (1.0.38) los addons del pack de Modos (carpetas). Los que tengas prendidos y no estén
+-- acá se muestran en Addons por modo para que elijas (Modos no los toca solo).
+A.PACK = {}
+for _, n in ipairs({ "!!!!ArregloAceTimer", "!!!ClassicAPI", "!BugGrabber", "!ClassColors", "APIDocumentation",
+    "ActionBarSaver", "AllStats", "AtlasLoot", "AtlasLootFu", "AtlasLoot_BurningCrusade", "AtlasLoot_Crafting",
+    "AtlasLoot_OriginalWoW", "AtlasLoot_WorldEvents", "AtlasLoot_WrathoftheLichKing", "Bagnon", "Bagnon_Config",
+    "Bagnon_Forever", "Bagnon_GuildBank", "Bagnon_Tooltips", "Bartender4", "BugSack", "Cell", "CombatLogFix",
+    "CompactRaidFrame", "Details", "Details_3DModelsPaths", "Details_ChartViewer", "Details_DataStorage",
+    "Details_DeathGraphs", "Details_EncounterDetails", "Details_SunderCount", "Details_TimeLine",
+    "Details_TinyThreat", "EasyFrames", "ElvUI", "ElvUI_OptionsUI", "EnhancedRaidFrames", "ExtrasUI",
+    "GearScoreLite", "Gladius", "ItemLevelSimple", "MRT", "Mapster", "MerfinPlus", "MinimapButtonFrame", "Modos",
+    "OmniCC", "OmniCC_Config", "PallyPower", "Quartz", "SoundAlerter", "TabPvP", "Talented", "WeakAuras",
+    "WeakAurasArchive", "WeakAurasModelPaths", "WeakAurasOptions", "WeakAurasTemplates", "xCT+" }) do
+    A.PACK[n] = true
+end
+function A.delPack(n) return A.PACK[n] or (n and n:sub(1, 4) == "DBM-") or false end
 
 local function reglas()
     local pj = NS.pj
@@ -113,7 +138,9 @@ end
 
 -- los addons instalados que maneja Modos, ordenados por nombre. Bartender4
 -- elegido con la pregunta de las barras no va en la ventana (todos = true lo suma)
-function A.lista(todos)
+-- (1.0.38) fuera = true suma los prendidos que no son del pack (sin regla: Modos no
+-- los toca hasta que elijas), para la ventana
+function A.lista(todos, fuera)
     local l = {}
     for i = 1, GetNumAddOns() do
         local n, titulo, _, prendido = GetAddOnInfo(i)
@@ -121,6 +148,8 @@ function A.lista(todos)
         if r and (todos or not reglaBarras(n)) then
             l[#l + 1] = { nombre = n, titulo = titulo, regla = r, prendido = prendido and true or false,
                           propia = NS.pj and reglas()[n] ~= nil }
+        elseif n and not r and fuera and prendido and not A.delPack(n) then
+            l[#l + 1] = { nombre = n, titulo = titulo, prendido = true, fuera = true }
         end
     end
     table.sort(l, function(a, b) return a.nombre:lower() < b.nombre:lower() end)
@@ -194,10 +223,42 @@ function A.revisarNecesarios()
     end
     return l
 end
--- lo revisa al entrar y avisa (pide recargar si prendió alguno)
+-- (1.0.38) al entrar, los addons como dice Addons por modo para el modo en uso (antes
+-- solo al cambiar de modo: un addon que prendiste en la lista de personajes seguía)
+function A.reglasAlEntrar()
+    local m = NS.pj and NS.pj.activo
+    if not m then return {}, {} end
+    return A.aplicar(m)
+end
+-- (1.0.38) los prendidos que no son del pack (una vez por personaje, para que elijas)
+function A.fueraDelPack()
+    local l = {}
+    for _, x in ipairs(A.lista(false, true)) do if x.fuera then l[#l + 1] = x.nombre end end
+    return l
+end
+
+-- lo revisa al entrar y avisa (pide recargar si prendió o apagó alguno)
 function A.necesariosAlEntrar()
     local decir = NS.decir or function() end
     local prendidos = {}
+    local pren, apag = A.reglasAlEntrar()
+    if #apag > 0 then
+        decir("Apagué " .. A.resumen(apag) .. ": en " .. NS.pj.activo .. " van apagados (los reemplaza el pack o así está"
+            .. " en Addons por modo). Si querés alguno, cambialo en /modos addons.")
+    end
+    if #pren > 0 then
+        decir("Prendí " .. A.resumen(pren) .. ": en " .. NS.pj.activo .. " van prendidos (Addons por modo).")
+    end
+    for _, n in ipairs(apag) do prendidos[#prendidos + 1] = n end
+    for _, n in ipairs(pren) do prendidos[#prendidos + 1] = n end
+    if NS.pj and not NS.pj.fueraAvisado then
+        local f = A.fueraDelPack()
+        if #f > 0 then
+            NS.pj.fueraAvisado = true
+            decir("Tenés prendidos " .. #f .. " addons que no son del pack: " .. table.concat(f, ", ")
+                .. ". Si alguno te molesta, en /modos addons tocá \"Nunca\" y Modos lo apaga.")
+        end
+    end
     for _, r in ipairs(A.revisarNecesarios()) do
         if r.que == "prendido" then
             prendidos[#prendidos + 1] = r.nombre
@@ -211,13 +272,14 @@ function A.necesariosAlEntrar()
     end
     if #prendidos > 0 and StaticPopupDialogs then
         StaticPopupDialogs["MODOS_RECARGAR_NECESARIOS"] = StaticPopupDialogs["MODOS_RECARGAR_NECESARIOS"] or {
-            text = "Modos: prendí %s (estaba apagado). Hay que recargar para que ande.",
+            text = "Modos: cambié %s (Addons por modo). Hay que recargar para que tome efecto.",
             button1 = "Recargar", button2 = "Después",
             OnAccept = function() ReloadUI() end,
             timeout = 0, whileDead = 1, hideOnEscape = true,
         }
-        if NS.pedirRecarga then NS.pedirRecarga("MODOS_RECARGAR_NECESARIOS", table.concat(prendidos, ", "))
-        elseif StaticPopup_Show then StaticPopup_Show("MODOS_RECARGAR_NECESARIOS", table.concat(prendidos, ", ")) end
+        local que = A.resumen(prendidos)
+        if NS.pedirRecarga then NS.pedirRecarga("MODOS_RECARGAR_NECESARIOS", que)
+        elseif StaticPopup_Show then StaticPopup_Show("MODOS_RECARGAR_NECESARIOS", que) end
     end
     return prendidos
 end

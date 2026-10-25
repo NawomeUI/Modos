@@ -529,13 +529,14 @@ end
 
 -- ------------------------------------------------------------ addons por modo
 -- Una fila por addon de la lista (DBM y todos sus módulos van en una sola),
--- con tres botones: PvE, PvP o Ambos.
-local FILAS_A = 14
-local ANCHO_A = 400
+-- con cuatro botones: PvE, PvP, Ambos o Nunca (1.0.38). Abajo, los prendidos que no
+-- son del pack (Modos no los toca hasta que elijas uno). De a 16 por página.
+local FILAS_A = 16
+local ANCHO_A = 440
 
 local function listaAddons()
     local l, dbm = {}, nil
-    for _, x in ipairs(NS.addons.lista()) do
+    for _, x in ipairs(NS.addons.lista(false, true)) do
         if x.nombre:sub(1, 4) == "DBM-" then
             if not dbm then
                 dbm = { nombre = "DBM", titulo = "DBM", regla = x.regla, modulos = {} }
@@ -548,17 +549,25 @@ local function listaAddons()
         end
     end
     if dbm then dbm.titulo = "DBM ("..#dbm.modulos.." módulos)" end
-    return l
+    -- los de afuera del pack al final
+    local de, fuera = {}, {}
+    for _, x in ipairs(l) do if x.fuera then fuera[#fuera + 1] = x else de[#de + 1] = x end end
+    for _, x in ipairs(fuera) do de[#de + 1] = x end
+    return de
 end
 
 local function refrescarAddons()
     if not (vAddons and vAddons:IsShown() and NS.pj and NS.addons) then return end
     local l = listaAddons()
+    vAddons.paginas = math.max(1, math.ceil(#l / FILAS_A))
+    vAddons.pagina = math.min(vAddons.pagina or 1, vAddons.paginas)
+    local base = (vAddons.pagina - 1) * FILAS_A
     for i, fila in ipairs(vAddons.filas) do
-        local x = l[i]
+        local x = l[base + i]
         fila.x = x
         if x then
-            fila.nombre:SetText(x.nombre == "DBM" and x.titulo or x.nombre)
+            local nom = x.nombre == "DBM" and x.titulo or x.nombre
+            fila.nombre:SetText(x.fuera and (nom .. E.cod(C.inactivo, "  · no es del pack")) or nom)
             for _, r in ipairs(NS.addons.REGLAS) do
                 fila[r]:SetTipo(x.regla == r and "pri" or nil)
             end
@@ -568,6 +577,8 @@ local function refrescarAddons()
         end
     end
     vAddons.nada:SetText(#l == 0 and "No hay instalado ningún addon de la lista." or "")
+    vAddons.pag:SetText(vAddons.paginas > 1 and (vAddons.pagina .. " / " .. vAddons.paginas) or "")
+    if vAddons.paginas > 1 then vAddons.ant:Show(); vAddons.sig:Show() else vAddons.ant:Hide(); vAddons.sig:Hide() end
 end
 
 local function crearFilaAddon(parent, i)
@@ -577,20 +588,28 @@ local function crearFilaAddon(parent, i)
     fila.nombre = E.texto(fila, "texto")
     fila.nombre:SetPoint("LEFT", 0, 0)
     local antes
-    for _, r in ipairs({ "ambos", "PvP", "PvE" }) do
-        local b = E.boton(fila, r == "ambos" and "Ambos" or r, 56, 20)
+    local TEXTO = { ambos = "Ambos", nunca = "Nunca", PvE = "PvE", PvP = "PvP" }
+    for _, r in ipairs({ "nunca", "ambos", "PvP", "PvE" }) do
+        local b = E.boton(fila, TEXTO[r], 52, 20)
         if antes then b:SetPoint("RIGHT", antes, "LEFT", -4, 0) else b:SetPoint("RIGHT", 0, 0) end
         antes = b
         b:SetScript("OnClick", function()
             local x = fila.x
             if not x then return end
-            for _, n in ipairs(x.modulos or { x.nombre }) do NS.addons.ponerRegla(n, r) end
+            -- (1.0.38) uno de afuera del pack: tocar el que ya tiene lo vuelve a "no lo toca"
+            local nueva = r
+            if x.regla == r and not NS.addons.FABRICA[x.nombre] and not x.modulos then nueva = nil end
+            for _, n in ipairs(x.modulos or { x.nombre }) do NS.addons.ponerRegla(n, nueva) end
             refrescarAddons()
         end)
         b:SetScript("OnEnter", function(self)
-            E.ayuda(self, r == "ambos" and "Ambos" or ("Solo en "..r),
-                r == "ambos" and "Queda prendido en los dos modos: Modos no lo toca."
-                or ("Se prende en "..r.." y se apaga en el otro. Toma efecto al cambiar de modo (con recarga)."))
+            local ayudas = {
+                ambos = "Prendido en los dos modos.",
+                nunca = "Apagado en los dos modos (lo reemplaza el pack o no lo querés).",
+            }
+            E.ayuda(self, r == "ambos" and "Ambos" or (r == "nunca" and "Nunca" or ("Solo en "..r)),
+                (ayudas[r] or ("Se prende en "..r.." y se apaga en el otro."))
+                .. " Toma efecto al recargar (Modos lo pide al entrar o al cambiar de modo).")
         end)
         b:SetScript("OnLeave", E.sinAyuda)
         fila[r] = b
@@ -601,7 +620,7 @@ end
 local function crearAddons()
     if vAddons then return end
     local f = CreateFrame("Frame", "ModosAddons", UIParent)
-    f:SetWidth(ANCHO_A); f:SetHeight(84 + FILAS_A * 24 + 60)
+    f:SetWidth(ANCHO_A); f:SetHeight(84 + FILAS_A * 24 + 84)
     ponerPos(f, "addons", "CENTER", "CENTER", 0, 40)
     E.ventana(f)
     f:SetFrameStrata("DIALOG")
@@ -630,11 +649,21 @@ local function crearAddons()
     for i = 1, FILAS_A do f.filas[i] = crearFilaAddon(f, i) end
     f.nada = E.texto(f, "chico")
     f.nada:SetPoint("TOPLEFT", 16, -90)
-    E.linea(f, -(84 + FILAS_A * 24 + 4))
+    -- (1.0.38) páginas
+    f.pagina = 1
+    f.ant = E.boton(f, "<", 24, 20)
+    f.ant:SetPoint("TOPLEFT", 16, -(84 + FILAS_A * 24 + 2))
+    f.ant:SetScript("OnClick", function() f.pagina = math.max(1, f.pagina - 1); refrescarAddons() end)
+    f.sig = E.boton(f, ">", 24, 20)
+    f.sig:SetPoint("LEFT", f.ant, "RIGHT", 4, 0)
+    f.sig:SetScript("OnClick", function() f.pagina = math.min(f.paginas or 1, f.pagina + 1); refrescarAddons() end)
+    f.pag = E.texto(f, "chico")
+    f.pag:SetPoint("LEFT", f.sig, "RIGHT", 8, 0)
+    E.linea(f, -(84 + FILAS_A * 24 + 28))
     local nota = E.texto(f, "chico")
-    nota:SetPoint("TOPLEFT", 16, -(84 + FILAS_A * 24 + 14))
+    nota:SetPoint("TOPLEFT", 16, -(84 + FILAS_A * 24 + 38))
     nota:SetWidth(ANCHO_A - 32)
-    nota:SetText("Los cambios toman efecto la próxima vez que cambies de modo: Modos prende y apaga lo que haga falta y recarga la interfaz. Los addons que no están acá no se tocan.")
+    nota:SetText("Modos prende y apaga lo que haga falta al entrar y al cambiar de modo, y pide recargar. Los que dicen \"no es del pack\" no los toca hasta que elijas uno (tocá de nuevo el elegido para soltarlo).")
     f:SetScript("OnShow", refrescarAddons)
     f:Hide()
     vAddons = f
