@@ -2,7 +2,7 @@
 ## Title: Modos
 ## Notes: Tu configuración PvE y PvP (binds, barras, addons y perfiles) con un clic, por personaje.
 ## Author: Nahuel
-## Version: 1.0.30
+## Version: 1.0.31
 ## SavedVariables: ModosDB
 
 Estilo.lua

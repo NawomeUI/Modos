@@ -152,6 +152,68 @@ function A.aplicar(m)
     return prendidos, apagados
 end
 
+-- (1.0.31) los que tienen que estar cargados sí o sí, en los dos modos: sin
+-- MerfinPlus la WA de Merfin "Equipped Items" (los abalorios y procs sobre tu
+-- marco) no sabe nada de los abalorios y no muestra ninguno ("MerfinPlus is not
+-- loaded" en el chat). Si está apagado, Modos lo prende y pide recargar.
+A.NECESARIOS = {
+    { "MerfinPlus", "tus abalorios sobre tu marco (Equipped Items de Merfin) y las texturas de Merfin" },
+}
+A.MOTIVOS = {
+    DEP_DISABLED = "uno de los addons que necesita está apagado",
+    DEP_MISSING = "falta uno de los addons que necesita",
+    INTERFACE_VERSION = "dice que está desactualizado (en la lista de addons tildá \"Cargar addons desactualizados\")",
+    CORRUPT = "está roto (volvé a copiarlo del pack)",
+    INCOMPATIBLE = "es de otra versión del juego (volvé a copiarlo del pack)",
+}
+-- devuelve { { nombre, que = "prendido" | "falta" | motivo, para } }
+function A.revisarNecesarios()
+    local l = {}
+    if not (GetAddOnInfo and IsAddOnLoaded) then return l end
+    for _, x in ipairs(A.NECESARIOS) do
+        local n = x[1]
+        if not IsAddOnLoaded(n) then
+            local nombre, _, _, prendido, _, motivo = GetAddOnInfo(n)
+            if not nombre or motivo == "MISSING" then
+                l[#l + 1] = { nombre = n, que = "falta", para = x[2] }
+            elseif not prendido then
+                EnableAddOn(n)
+                l[#l + 1] = { nombre = n, que = "prendido", para = x[2] }
+            else
+                l[#l + 1] = { nombre = n, que = motivo or "?", para = x[2] }
+            end
+        end
+    end
+    return l
+end
+-- lo revisa al entrar y avisa (pide recargar si prendió alguno)
+function A.necesariosAlEntrar()
+    local decir = NS.decir or function() end
+    local prendidos = {}
+    for _, r in ipairs(A.revisarNecesarios()) do
+        if r.que == "prendido" then
+            prendidos[#prendidos + 1] = r.nombre
+            decir(r.nombre .. " estaba apagado y lo prendí: sin él no aparecen " .. r.para .. ".")
+        elseif r.que == "falta" then
+            decir("Falta " .. r.nombre .. " en tu carpeta AddOns (viene en el pack de Modos): sin él no aparecen "
+                .. r.para .. ".")
+        else
+            decir(r.nombre .. " no cargó: " .. (A.MOTIVOS[r.que] or r.que) .. ". Sin él no aparecen " .. r.para .. ".")
+        end
+    end
+    if #prendidos > 0 and StaticPopupDialogs then
+        StaticPopupDialogs["MODOS_RECARGAR_NECESARIOS"] = StaticPopupDialogs["MODOS_RECARGAR_NECESARIOS"] or {
+            text = "Modos: prendí %s (estaba apagado). Hay que recargar para que vuelvan tus abalorios.",
+            button1 = "Recargar", button2 = "Después",
+            OnAccept = function() ReloadUI() end,
+            timeout = 0, whileDead = 1, hideOnEscape = true,
+        }
+        if NS.pedirRecarga then NS.pedirRecarga("MODOS_RECARGAR_NECESARIOS", table.concat(prendidos, ", "))
+        elseif StaticPopup_Show then StaticPopup_Show("MODOS_RECARGAR_NECESARIOS", table.concat(prendidos, ", ")) end
+    end
+    return prendidos
+end
+
 -- resumen corto para el chat: "Cell, DBM (14)" en vez de todos los módulos
 function A.resumen(l)
     local dbm, otros = 0, {}

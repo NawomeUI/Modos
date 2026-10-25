@@ -28,7 +28,7 @@
 local ADDON, NS = ...
 NS = NS or {}
 
-NS.VERSION = "1.0.30"
+NS.VERSION = "1.0.31"
 NS.MODOS = { "PvE", "PvP" }
 
 local DESDE_POSESION, HASTA_POSESION, ULTIMO = 121, 132, 144
@@ -109,7 +109,8 @@ NS.despues = despues
 -- anota el motivo y marca su botón Recargar. Al tocar Listo con una recarga
 -- pendiente sale una sola ventanita. Sin el asistente, como siempre.
 NS.RECARGAS = { MODOS_RECARGAR = "el modo", MODOS_RECARGAR_BARRAS = "las barras", MODOS_RECARGAR_ROL = "Cell",
-                MODOS_RECARGAR_AURAS = "las WeakAuras", MODOS_RECARGAR_ESCALA = "la escala" }
+                MODOS_RECARGAR_AURAS = "las WeakAuras", MODOS_RECARGAR_ESCALA = "la escala",
+                MODOS_RECARGAR_NECESARIOS = "MerfinPlus" }
 function NS.pedirRecarga(nombre, arg)
     local I = NS.instalar
     if I and I.abierto and I.abierto() then
@@ -1363,6 +1364,10 @@ ev:SetScript("OnEvent", function(self, event, ...)
         if not NS.entro then
             NS.entro = true
             despues(3, "grupo", function() revisarGrupo("inicio") end)
+            -- (1.0.31) MerfinPlus (los abalorios de Equipped Items) prendido sí o sí
+            if NS.addons and NS.addons.necesariosAlEntrar then
+                despues(5, "necesarios", NS.addons.necesariosAlEntrar)
+            end
             -- la primera vez en este personaje: ¿barras con Bartender o de Blizzard?
             -- (con el asistente de primeros pasos pendiente, se contesta ahí)
             if NS.barras and NS.barras.falta() and not (NS.instalar and NS.instalar.pendiente()) then
