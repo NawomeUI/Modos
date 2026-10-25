@@ -433,6 +433,8 @@ PR.PARTES = {
     -- (1.0.25) con Bartender escondidas: la 10 a la vista en el borde y las escondidas
     -- juntas a su izquierda (todas las barras de acción del preset, una vez)
     { id = "barras3", v = 1, modos = { PvE = true, PvP = true }, bt = { "ActionBars" }, soloEscondidas = true },
+    -- (1.0.26) el foco de PvE más grande y con retrato
+    { id = "foco", v = 1, modos = { PvE = true }, elv = "foco" },
 }
 -- (1.0.24) MinimapButtonFrame como lo puso él: los botones en una sola columna
 PR.MBF = { columns_or_rows = 1, sort_by_rows = false }
@@ -526,10 +528,10 @@ PR.MOVERS = {
         ElvUF_PlayerMover = "BOTTOM,ElvUIParent,BOTTOM,-256,275",
         ElvUF_TargetMover = "BOTTOM,ElvUIParent,BOTTOM,256,275",
         ElvUF_TargetTargetMover = "BOTTOM,ElvUIParent,BOTTOM,404,275",
-        ElvUF_FocusMover = "BOTTOM,ElvUIParent,BOTTOM,505,275",
+        ElvUF_FocusMover = "BOTTOM,ElvUIParent,BOTTOM,524,275",
         ElvUF_PetMover = "BOTTOM,ElvUIParent,BOTTOM,-258,227",
         ElvUF_TargetCastbarMover = "BOTTOM,ElvUIParent,BOTTOM,229.5,255",
-        ElvUF_FocusCastbarMover = "BOTTOM,ElvUIParent,BOTTOM,505,253",
+        ElvUF_FocusCastbarMover = "BOTTOM,ElvUIParent,BOTTOM,524,253",
         ElvUF_PlayerCastbarMover = "BOTTOM,ElvUIParent,BOTTOM,0,220",
         BossHeaderMover = "TOPRIGHT,ElvUIParent,TOPRIGHT,-351,-411",
     },
@@ -537,10 +539,12 @@ PR.MOVERS = {
         ElvUF_PlayerMover = "BOTTOM,ElvUIParent,BOTTOM,-360.5,376",
         ElvUF_TargetMover = "BOTTOM,ElvUIParent,BOTTOM,360.5,376",
         ElvUF_TargetTargetMover = "BOTTOM,ElvUIParent,BOTTOM,501,376",
-        ElvUF_FocusMover = "BOTTOM,ElvUIParent,BOTTOM,604,376",
+        -- (1.0.26) el foco (ahora 160x36) debajo del objetivo, a la derecha del Cell: a la
+        -- derecha del objetivo del objetivo no entra sin tocar las barras del costado
+        ElvUF_FocusMover = "BOTTOM,ElvUIParent,BOTTOM,400,300",
         ElvUF_PetMover = "BOTTOM,ElvUIParent,BOTTOM,501,357",
         ElvUF_TargetCastbarMover = "BOTTOM,ElvUIParent,BOTTOM,334,356",
-        ElvUF_FocusCastbarMover = "BOTTOM,ElvUIParent,BOTTOM,604,354",
+        ElvUF_FocusCastbarMover = "BOTTOM,ElvUIParent,BOTTOM,400,280",
         ElvUF_PlayerCastbarMover = "BOTTOM,ElvUIParent,BOTTOM,0,74",
         -- (1.0.13) 24 más a la derecha: con 3 filas de buffs del objetivo se tocaban
         BossHeaderMover = "TOPRIGHT,ElvUIParent,TOPRIGHT,-327,-411",
@@ -574,7 +578,12 @@ PR.UF_AJUSTES = { units = {
                buffs = { sizeOverride = 18 },
                debuffs = { enable = true, sizeOverride = 18,
         priority = "Blacklist,Personal,Friendly:RaidDebuffs,Friendly:CCDebuffs,Friendly:Dispellable,Friendly:notCastByUnit,Friendly:CastByNPC" } },
-    focus = { width = 120, height = 24, castbar = { width = 120 } },
+    -- (1.0.26) el foco más grande y con retrato (lo pidió, 25/10: "muy chiquito y sin
+    -- marco/retrato"): 160x36 con retrato de 36, sin el número de recurso (se encimaba
+    -- con la vida en la barrita de 6). El nombre arriba y la vida en % como antes.
+    focus = { width = 160, height = 36, castbar = { width = 160 },
+              portrait = { enable = true, overlay = false, fullOverlay = false, style = "3D", width = 36 },
+              power = { height = 6 }, customTexts = { UnitPower = { enable = false } } },
     targettarget = { width = 64, height = 14 },
     pet = { width = 64, height = 16 },
 } }
@@ -588,6 +597,7 @@ PR.AJUSTES_ELV = {
     },
     pve1 = { PvE = { unitframe = PR.UF_AJUSTES, nameplates = { units = { ENEMY_NPC = PR.PLACAS_NPC } } } },
     pve2 = { PvE = { unitframe = PR.UF_AJUSTES } },          -- (1.0.13) marcos más chicos, nombre y recurso
+    foco = { PvE = { unitframe = { units = { focus = PR.UF_AJUSTES.units.focus } } } },   -- (1.0.26)
     -- (1.0.13) sin los totems de ElvUI (PvE ya los tenía apagados) ni la experiencia de la mascota
     sueltas = {
         PvE = { general = { totems = { enable = false } }, databars = { petExperience = { enable = false } } },

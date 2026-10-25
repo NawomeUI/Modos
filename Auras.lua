@@ -363,6 +363,64 @@ function AU.reubicarClases(ds)
     return n
 end
 
+-- (1.0.26) arreglos en las auras que puso Modos (las de clase, las de Merfin y las
+-- de Modos), una vez por aura (ModosDB.auras.arreglados[uid]): si después cambiás algo
+-- a mano en WeakAuras, no se vuelve a tocar. Lo pidió (25/10, paladín): "en el sello se
+-- ve todo raro como con muchos números colapsados".
+--   * el tiempo doble: estas WeakAuras no le avisan a OmniCC que ponen su propio
+--     número (no usan noCooldownCount), así que en los íconos con la recarga a la
+--     vista salían los dos (29:55 de la aura y 29m de OmniCC encimados). Queda el de
+--     OmniCC, como en todo lo demás (1.0.12).
+--   * el maná de la barra de clase en miles con "T" (3.0T): con "K", como tus marcos.
+--   * los íconos de arriba de la barra de clase (Top Panel) 6 más arriba: el número
+--     de la barra (arriba de ella) quedaba debajo del ícono.
+AU.ARREGLO = 1
+AU.TOP_PANEL = { antes = 10, ahora = 16 }
+local function arreglar(d)
+    local hizo = false
+    if d.regionType == "icon" and d.cooldown and type(d.subRegions) == "table" then
+        for _, sr in ipairs(d.subRegions) do
+            if type(sr) == "table" and sr.type == "subtext" and sr.text_text == "%p" and sr.text_visible ~= false then
+                sr.text_visible = false
+                hizo = true
+            end
+        end
+    elseif d.regionType == "aurabar" and type(d.config) == "table" and d.config.sign_value == "T" then
+        d.config.sign_value = "K"
+        hizo = true
+    elseif d.regionType == "dynamicgroup" and type(d.id) == "string" and d.id:find("Top Panel$")
+           and d.yOffset == AU.TOP_PANEL.antes then
+        d.yOffset = AU.TOP_PANEL.ahora
+        hizo = true
+    end
+    return hizo
+end
+AU.arreglarAura = arreglar
+function AU.arreglarModos(ds)
+    if not (ds and type(ModosDB) == "table" and ModosDB.auras) then return 0 end
+    local inst = ModosDB.auras.instalados or {}
+    ModosDB.auras.arreglados = ModosDB.auras.arreglados or {}
+    local hechos = ModosDB.auras.arreglados
+    local function arriba(d)
+        local n = 0
+        while type(d) == "table" and type(d.parent) == "string" and type(ds[d.parent]) == "table" and n < 20 do
+            d, n = ds[d.parent], n + 1
+        end
+        return d
+    end
+    local n = 0
+    for _, d in pairs(ds) do
+        if type(d) == "table" and type(d.uid) == "string" and (hechos[d.uid] or 0) < AU.ARREGLO then
+            local top = arriba(d)
+            if type(top) == "table" and ((type(top.uid) == "string" and inst[top.uid]) or (top.id and inst[top.id])) then
+                if arreglar(d) then n = n + 1 end
+                hechos[d.uid] = AU.ARREGLO
+            end
+        end
+    end
+    return n
+end
+
 -- ------------------------------------------------------------ al cargar
 -- el modo en uso de este personaje, leído directo de ModosDB (todavía no está NS.pj)
 function AU.modoGuardado()
@@ -384,7 +442,8 @@ local function preparar(m)
         AU.reubicadas = AU.reubicarClases(displays())
         ModosDB.auras.lugarClase = AU.LUGAR_CLASE
     end
-    return puestas + AU.reubicadas, AU.aplicar(m or "PvE")
+    AU.arregladas = AU.arreglarModos(displays())
+    return puestas + AU.reubicadas + AU.arregladas, AU.aplicar(m or "PvE")
 end
 
 AU.aplicadoAntes = false
@@ -415,6 +474,9 @@ ev:SetScript("OnEvent", function(_, event, nombre)
         end
         if AU.reubicadas and AU.reubicadas > 0 then
             NS.decir("Volví la WA de tu clase a su lugar (estaba corrida a mano). Tu marco y el objetivo se apoyan en su piso.")
+        end
+        if AU.arregladas and AU.arregladas > 0 then
+            NS.decir("Arreglé las WeakAuras de clase: un solo número de tiempo en cada ícono (el de OmniCC) y el maná en K.")
         end
         return
     end
