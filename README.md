@@ -44,6 +44,7 @@ Si tus barras están escondidas, `/modos barras ver` las pone todas a la vista (
 |---|---|
 | `/modos` | Ayuda |
 | `/modos instalar` | Abre de nuevo los primeros pasos |
+| `/modos desdecero` | Deja el personaje como la primera vez, en los dos modos: perfiles nuevos de fábrica de los otros addons, marcos, barras elegidas, asistente y las WeakAuras de Modos del modo en uso. Se quedan tus binds, barras, Mis CDs, rol y addons de cada modo (pregunta antes) |
 | `/modos barras` | Barras con o sin Bartender, a la vista o escondidas |
 | `/modos barras ver` | Todas las barras a la vista, para poner binds |
 | `/modos barras esconder` | Las deja como estaban |

@@ -28,7 +28,7 @@
 local ADDON, NS = ...
 NS = NS or {}
 
-NS.VERSION = "1.0.40"
+NS.VERSION = "1.0.41"
 NS.MODOS = { "PvE", "PvP" }
 
 local DESDE_POSESION, HASTA_POSESION, ULTIMO = 121, 132, 144
@@ -133,6 +133,64 @@ function NS.reiniciarYa(m)
     if NS.perfiles.avisar then NS.perfiles.avisar(rp, m, m) end
     if NS.recargarSiHace then NS.recargarSiHace(m, rp) end
     return true
+end
+-- (1.0.41) /modos desdecero: este personaje vuelve a como si instalaras Modos por
+-- primera vez. Lo que se queda: los binds y las barras de cada modo, Mis CDs, el rol,
+-- qué addons van en cada modo y en qué modo estás. Lo demás se borra: los perfiles de
+-- los otros addons se arman nuevos con número ("Bypass - PvP 2", de fábrica y con la
+-- UI de Modos encima; los de antes quedan sin tocar), las posiciones de los marcos,
+-- la UI armada, las barras elegidas y el asistente, que se vuelve a abrir. Las
+-- WeakAuras de Modos del modo en uso se reemplazan por las de fábrica al recargar.
+-- Lo de antes queda en ModosDB.respaldos (por si hay que mirarlo).
+NS.QUEDA_DESDE_CERO = { "modos", "enGrupo", "aMedias", "grupo", "activo", "ultimo", "svVersion",
+    "misCDs", "misCDsPor", "misCDsOrden", "cdsPerfil", "rolPvE", "addons", "chat", "chatOculto" }
+function NS.desdeCeroYa()
+    if InCombatLockdown and InCombatLockdown() then decir("En combate no."); return false end
+    local pj = NS.pj
+    if not (pj and NS.perfiles) then return false end
+    local m = pj.activo
+    ModosDB.respaldos = ModosDB.respaldos or {}
+    ModosDB.respaldos[NS.clave] = { cuando = time(), version = NS.VERSION, pj = copiar(pj) }
+    local queda = {}
+    for _, k in ipairs(NS.QUEDA_DESDE_CERO) do queda[k] = pj[k] end
+    local gen = (type(pj.gen) == "number" and pj.gen or 1) + 1
+    -- dónde estaban los marcos antes de Modos (para cuando lo apagás) no se pierde
+    local origen = type(pj.marcos) == "table" and pj.marcos.origen or nil
+    -- se vacía la misma tabla: los demás archivos la tienen agarrada
+    for k in pairs(pj) do pj[k] = nil end
+    for k, v in pairs(queda) do pj[k] = v end
+    pj.modos = pj.modos or {}
+    pj.enGrupo = pj.enGrupo or {}
+    pj.aMedias = pj.aMedias or {}
+    pj.gen, pj.desdeCero, pj.saludado = gen, true, true
+    if origen then pj.marcos = { origen = origen } end
+    if type(CellDB) == "table" then CellDB.modos, CellDB.modosVida = nil, nil end
+    ModosDB.auras = ModosDB.auras or {}
+    ModosDB.auras.deFabrica = m or "PvE"
+    -- los addons que Modos cambia con el modo (todos, como al instalar), sin anotar
+    -- los perfiles de ahora: así se arman los nuevos
+    NS.perfiles.lista()
+    if m then
+        local rp = NS.perfiles.aplicar(m) or {}
+        rp.recargar = true
+        NS.perfiles.avisar(rp, m, m)
+        decir("Listo: "..m.." quedó armado desde cero. Al recargar se abre el asistente de primeros pasos. El otro modo se arma de cero la primera vez que pases.")
+        if NS.recargarSiHace then NS.recargarSiHace(m, rp) else ReloadUI() end
+    else
+        decir("Listo: al recargar se abre el asistente de primeros pasos.")
+        ReloadUI()
+    end
+    return true
+end
+function NS.preguntarDesdeCero()
+    if not (StaticPopupDialogs and StaticPopup_Show) then return NS.desdeCeroYa() end
+    StaticPopupDialogs["MODOS_DESDE_CERO"] = {
+        text = "Modos: ¿todo desde cero en este personaje?\n\nLos dos modos vuelven a como si instalaras Modos por primera vez: perfiles nuevos de los otros addons (de fábrica, con la UI de Modos), marcos, barras elegidas y las WeakAuras de Modos de este modo. Se quedan tus binds, tus barras, Mis CDs, el rol y qué addons van en cada modo. Tus otros personajes no se tocan (las WeakAuras son de la cuenta). Después recarga y se abre el asistente.",
+        button1 = "Desde cero", button2 = "Cancelar",
+        OnAccept = function() NS.desdeCeroYa() end,
+        timeout = 0, whileDead = 1, hideOnEscape = true, showAlert = 1,
+    }
+    return StaticPopup_Show("MODOS_DESDE_CERO")
 end
 function NS.preguntarReiniciar(m)
     if not (StaticPopupDialogs and StaticPopup_Show) then return NS.reiniciarYa(m) end
@@ -1444,6 +1502,10 @@ SlashCmdList["MODOS"] = function(msg)
         else
             NS.preguntarReiniciar(NS.pj.activo)
         end
+    elseif cmd == "desdecero" or (cmd == "instalar" and (arg == "de cero" or arg == "cero")) then
+        -- (1.0.41) este personaje como la primera vez (pregunta antes)
+        if InCombatLockdown and InCombatLockdown() then decir("En combate no.")
+        else NS.preguntarDesdeCero() end
     elseif cmd == "addons" then
         if NS.abrirAddons then NS.abrirAddons() end
     elseif cmd == "oscuro" then
@@ -1496,6 +1558,7 @@ SlashCmdList["MODOS"] = function(msg)
         decir("/modos cds elige qué hechizos y abalorios ves al medio (aura Mis CDs). /modos cds guardar <nombre> y /modos cds cargar <nombre> guardan y ponen perfiles de Mis CDs (como ABS). /modos addons elige qué addons van en cada modo. /modos barras elige barras con Bartender o de Blizzard, a la vista o escondidas. /modos barras ver pone todas a la vista para poner binds (/modos barras esconder las deja como estaban). /modos instalar abre el asistente de primeros pasos (addons, modo, barras y rol). /modos auras muestra qué WeakAuras van con cada modo (se instalan solas, también la de tu clase). /modos auras reinstalar vuelve a poner las que borraste. /modos escala deja libre (o vuelve a fijar) la escala de la interfaz. /modos rol tank, /modos rol dps o /modos rol heal elige el rol de PvE del talento en uso (sin nada: pregunta).")
         decir("/modos listo muestra lo que te falta antes del pull (frasco, comida, buffs, lo de tu clase, piedra, reparar). Sale solo en mazmorras y bandas al entrar, con la revisión de listos y con la cuenta del pull de DBM.")
         decir("/modos preset vuelve a poner encima la UI armada del modo en uso. /modos reiniciar la arma desde cero: los perfiles de Modos de ese modo vuelven a como vienen y se pone todo de nuevo (pregunta antes).")
+        decir("/modos desdecero deja este personaje como la primera vez, en los dos modos: perfiles nuevos de fábrica, marcos, barras elegidas, asistente y las WeakAuras de Modos de este modo. Se quedan tus binds, barras, Mis CDs, rol y addons de cada modo (pregunta antes).")
         decir("También podés ponerle teclas en Key Bindings, sección Modos. Esas teclas nunca cambian con el modo.")
     else
         if NS.abrirVentana then NS.abrirVentana() end

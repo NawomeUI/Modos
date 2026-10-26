@@ -96,15 +96,26 @@ local function hayCRF()
         and type(HasLoadedCUFProfiles) == "function" and HasLoadedCUFProfiles()
 end
 
+-- (1.0.41) después de /modos desdecero los perfiles propios llevan número ("Bypass -
+-- PvP 2"): se arman de cero, sin heredar nada de los de antes (que quedan sin tocar)
+local function sufijo()
+    local g = NS.pj and NS.pj.gen
+    return (type(g) == "number" and g > 1) and (" "..g) or ""
+end
+-- (1.0.41) desde cero: los perfiles nuevos arrancan de fábrica (con la UI de Modos
+-- encima), no copiados de los que tenías
+local function deCero() return NS.pj and NS.pj.desdeCero and true or false end
+P.deCero = deCero
+
 -- nombre del perfil propio de este personaje para un modo: "Bypass - PvP"
 local function nombrePropio(m)
-    return (UnitName("player") or "?").." - "..m
+    return (UnitName("player") or "?").." - "..m..sufijo()
 end
 P.nombrePropio = nombrePropio
 
 -- la parte privada de ElvUI es por personaje: "Bypass - Andes - PvE"
 local function nombrePrivado(m)
-    return (UnitName("player") or "?").." - "..(GetRealmName() or "?").." - "..m
+    return (UnitName("player") or "?").." - "..(GetRealmName() or "?").." - "..m..sufijo()
 end
 P.nombrePrivado = nombrePrivado
 
@@ -165,7 +176,7 @@ local function actualMA()
 end
 
 local function nombreMA(m)
-    return ((GetCVar and GetCVar("realmName")) or GetRealmName() or "?").." "..(UnitName("player") or "?").." - "..m
+    return ((GetCVar and GetCVar("realmName")) or GetRealmName() or "?").." "..(UnitName("player") or "?").." - "..m..sufijo()
 end
 
 -- pasa MoveAnything a la tabla "nombre" (si no existe, copiada de "fuente")
@@ -320,7 +331,7 @@ local function aplicarOtro(a, e, nuevo, desde, r)
         objetivo = a.propio(nuevo)
         if not a.existe(objetivo) then r.creados[#r.creados + 1] = a.nombre end
     end
-    local ok, res = pcall(a.poner, objetivo, ahora)
+    local ok, res = pcall(a.poner, objetivo, (not deCero()) and ahora or nil)
     if ok then
         e[nuevo] = objetivo
         if res then r.cambiados[#r.cambiados + 1] = a.nombre end
@@ -354,7 +365,7 @@ local function aplicarPrivado(db, e, nuevo, desde, r)
     if not objetivo or not sv.profiles[objetivo] then
         objetivo = nombrePrivado(nuevo)
         if not sv.profiles[objetivo] then
-            sv.profiles[objetivo] = copiaProfunda(sv.profiles[e.origen] or sv.profiles[ahora] or {})
+            sv.profiles[objetivo] = deCero() and {} or copiaProfunda(sv.profiles[e.origen] or sv.profiles[ahora] or {})
         end
     end
     e[nuevo] = objetivo
@@ -432,7 +443,7 @@ function P.aplicar(nuevo, desde)
             if objetivo ~= ahora then
                 local ok, err = pcall(function()
                     db:SetProfile(objetivo)
-                    if crear then db:CopyProfile(ahora) end
+                    if crear and not deCero() then db:CopyProfile(ahora) end
                 end)
                 if ok then
                     e[nuevo] = objetivo
@@ -477,7 +488,7 @@ local function propio(sv, m)
     svt.profiles = svt.profiles or {}
     local actual = e[m] or db:GetCurrentProfile()
     local n = nombrePropio(m)
-    if actual ~= n and not svt.profiles[n] then
+    if actual ~= n and not svt.profiles[n] and not deCero() then
         svt.profiles[n] = copiaProfunda(svt.profiles[actual] or {})
         for _, t in pairs(svt.namespaces or {}) do
             if type(t) == "table" and t.profiles and t.profiles[actual] then
@@ -679,7 +690,7 @@ function P.aplicarPreset(m, r)
         if e and e.sigue then
             -- tabla propia del modo, copiada de la que tenía (como al crearla)
             local n = nombreMA(m)
-            local ok = pcall(ponerMA, n, e[m] or actualMA())
+            local ok = pcall(ponerMA, n, (not deCero()) and (e[m] or actualMA()) or nil)
             if ok and MoveAnything_CharacterSettings[n] then
                 e[m] = n
                 for marco, t in pairs(p.MoveAnything) do
@@ -1257,7 +1268,10 @@ end
 
 -- los avisos en el chat después de un cambio
 function P.avisar(r, nuevo, viejo)
-    if #r.creados > 0 then
+    if #r.creados > 0 and deCero() then
+        NS.decir("Armé perfiles \""..nombrePropio(nuevo).."\" de cero (de fábrica, con la UI de Modos) en: "
+            ..table.concat(r.creados, ", ")..".")
+    elseif #r.creados > 0 then
         NS.decir("Armé perfiles \""..nombrePropio(nuevo).."\" copiados de los de "..viejo.." en: "
             ..table.concat(r.creados, ", ")..". Lo que cambies ahí no toca a "..viejo.." ni a tus otros personajes.")
     end

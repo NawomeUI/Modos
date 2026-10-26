@@ -366,6 +366,47 @@ function AU.instalar(forzar)
     return #AU.puestas + #AU.actualizadas
 end
 
+-- (1.0.41) /modos desdecero: los paquetes de Modos de ese modo vuelven a ser los de
+-- fábrica (en su lugar de fábrica). Los que no estén, se ponen. Devuelve cuántos.
+function AU.deFabrica(m)
+    local ds = displays()
+    AU.deFabricaHechos = {}
+    if not (ds and AU.puedeInstalar()) then return 0 end
+    ModosDB.auras = ModosDB.auras or {}
+    ModosDB.auras.instalados = ModosDB.auras.instalados or {}
+    ModosDB.auras.versiones = ModosDB.auras.versiones or {}
+    local hechos, versiones = ModosDB.auras.instalados, ModosDB.auras.versiones
+    local uids, porUidArriba, porIdArriba = {}, {}, {}
+    for id, d in pairs(ds) do
+        if type(d) == "table" then
+            if type(d.uid) == "string" then uids[d.uid] = true end
+            if type(id) == "string" and not d.parent then
+                if type(d.uid) == "string" then porUidArriba[d.uid] = id end
+                porIdArriba[id:match("^(.-) %d+$") or id] = porIdArriba[id:match("^(.-) %d+$") or id] or id
+            end
+        end
+    end
+    for _, x in ipairs(AU.paquetesDe(AU.clase())) do
+        local modo = (x.uid and porUid[x.uid]) or (x.id and porId[x.id])
+        local clave = x.uid or x.id
+        if modo == m and clave then
+            local okl, t = pcall(AU.leer, x.texto)
+            if okl and t then
+                local arriba = (x.uid and porUidArriba[x.uid]) or (x.id and porIdArriba[x.id])
+                local listo
+                if arriba then listo = reemplazar(ds, arriba, t, uids, nil)
+                else listo = pcall(AU.poner, ds, t, uids) end
+                if listo then
+                    hechos[clave] = true
+                    versiones[clave] = x.version or 1
+                    AU.deFabricaHechos[#AU.deFabricaHechos + 1] = x.nombre
+                end
+            end
+        end
+    end
+    return #AU.deFabricaHechos
+end
+
 -- (1.0.14) la WA de clase vuelve al lugar del paquete, una vez: cada aura de los
 -- paquetes de clase que tengas puestos con su x e y de fábrica (la del pícaro estaba
 -- corrida a mano y ahora tu marco y el objetivo se apoyan en el piso de la WA).
@@ -515,7 +556,14 @@ end
 -- instala lo que falte y deja cargando solo lo del modo (sin modo elegido: PvE)
 local function preparar(m)
     local forzar = type(ModosDB) == "table" and ModosDB.auras and ModosDB.auras.reinstalar
-    local puestas = AU.instalar(forzar)
+    -- (1.0.41) después de /modos desdecero: las de ese modo, de fábrica
+    local fabrica = 0
+    local deF = type(ModosDB) == "table" and ModosDB.auras and ModosDB.auras.deFabrica
+    if deF and AU.puedeInstalar() then
+        fabrica = AU.deFabrica(deF)
+        ModosDB.auras.deFabrica = nil
+    end
+    local puestas = AU.instalar(forzar) + fabrica
     if forzar and AU.puedeInstalar() then ModosDB.auras.reinstalar = nil end
     AU.reubicadas = 0
     if type(ModosDB) == "table" and ModosDB.auras and ModosDB.auras.lugarClase ~= AU.LUGAR_CLASE and AU.puedeInstalar() then
@@ -551,6 +599,9 @@ ev:SetScript("OnEvent", function(_, event, nombre)
         end
         if AU.actualizadas and #AU.actualizadas > 0 then
             NS.decir("Actualicé en tus WeakAuras " .. table.concat(AU.actualizadas, ", ") .. " (versión nueva de Modos).")
+        end
+        if AU.deFabricaHechos and #AU.deFabricaHechos > 0 then
+            NS.decir("Volví a poner de fábrica " .. table.concat(AU.deFabricaHechos, ", ") .. ".")
         end
         if AU.reubicadas and AU.reubicadas > 0 then
             NS.decir("Volví la WA de tu clase a su lugar (estaba corrida a mano). Tu marco y el objetivo se apoyan en su piso.")
