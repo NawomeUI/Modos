@@ -409,10 +409,53 @@ end
 --   * el maná de la barra de clase en miles con "T" (3.0T): con "K", como tus marcos.
 --   * los íconos de arriba de la barra de clase (Top Panel) 6 más arriba: el número
 --     de la barra (arriba de ella) quedaba debajo del ícono.
-AU.ARREGLO = 1
+--   * (1.0.40, arreglo 2) los íconos de recarga en rojo si el objetivo está fuera de
+--     rango, como Mis CDs y las barras. Lo pidió (25/10, cazador): "no pone rojo la
+--     habilidad cuando estás fuera de rango y es difícil saber de dónde pegar". Merfin
+--     lo trae solo en algunos (Mangle, Lava Burst, Mind Blast...): se les pone a todos
+--     los que tienen recarga de hechizo y no lo tienen. Si el hechizo no tiene rango
+--     (Bestial Wrath, Rapid Fire, Barkskin) o no sirve con ese objetivo (una cura con
+--     un enemigo marcado), no cambia nada. Va última: manda sobre el gris y el azul.
+AU.ARREGLO = 2
 AU.TOP_PANEL = { antes = 10, ahora = 16 }
-local function arreglar(d)
+AU.ROJO = { 0.8, 0.1, 0.1, 1 }
+local function chequeaRango(c)
+    if type(c) ~= "table" then return false end
+    if c.variable == "spellInRange" then return true end
+    for _, x in ipairs(type(c.checks) == "table" and c.checks or {}) do
+        if chequeaRango(x) then return true end
+    end
+    return false
+end
+function AU.ponerRango(d)
+    if type(d) ~= "table" or d.regionType ~= "icon" or type(d.triggers) ~= "table" then return false end
+    local cd
+    for i, tr in ipairs(d.triggers) do
+        local t = type(tr) == "table" and tr.trigger
+        if type(t) == "table" and t.type == "spell" and t.event == "Cooldown Progress (Spell)" then cd = i; break end
+    end
+    if not cd then return false end
+    if type(d.conditions) ~= "table" then d.conditions = {} end
+    for _, c in ipairs(d.conditions) do
+        if type(c) == "table" and chequeaRango(c.check) then return false end
+    end
+    d.conditions[#d.conditions + 1] = {
+        check = { trigger = -2, variable = "AND", checks = {
+            { trigger = -1, variable = "hastarget", value = 1 },
+            { trigger = cd, variable = "spellInRange", value = 0 },
+        } },
+        changes = { { property = "color", value = { AU.ROJO[1], AU.ROJO[2], AU.ROJO[3], AU.ROJO[4] } } },
+    }
+    return true
+end
+-- hecho: el último arreglo que ya tenía esta aura (0: ninguno)
+local function arreglar(d, hecho)
+    hecho = tonumber(hecho) or 0
     local hizo = false
+    if hecho < 2 and AU.ponerRango(d) then hizo = true; AU.conRango = (AU.conRango or 0) + 1 end
+    if hecho >= 1 then return hizo end
+    local antes = hizo
+    hizo = false
     if d.regionType == "icon" and d.cooldown and type(d.subRegions) == "table" then
         for _, sr in ipairs(d.subRegions) do
             if type(sr) == "table" and sr.type == "subtext" and sr.text_text == "%p" and sr.text_visible ~= false then
@@ -428,7 +471,8 @@ local function arreglar(d)
         d.yOffset = AU.TOP_PANEL.ahora
         hizo = true
     end
-    return hizo
+    if hizo then AU.conViejo = (AU.conViejo or 0) + 1 end
+    return hizo or antes
 end
 AU.arreglarAura = arreglar
 function AU.arreglarModos(ds)
@@ -444,11 +488,12 @@ function AU.arreglarModos(ds)
         return d
     end
     local n = 0
+    AU.conRango, AU.conViejo = 0, 0
     for _, d in pairs(ds) do
         if type(d) == "table" and type(d.uid) == "string" and (hechos[d.uid] or 0) < AU.ARREGLO then
             local top = arriba(d)
             if type(top) == "table" and ((type(top.uid) == "string" and inst[top.uid]) or (top.id and inst[top.id])) then
-                if arreglar(d) then n = n + 1 end
+                if arreglar(d, hechos[d.uid]) then n = n + 1 end
                 hechos[d.uid] = AU.ARREGLO
             end
         end
@@ -510,8 +555,12 @@ ev:SetScript("OnEvent", function(_, event, nombre)
         if AU.reubicadas and AU.reubicadas > 0 then
             NS.decir("Volví la WA de tu clase a su lugar (estaba corrida a mano). Tu marco y el objetivo se apoyan en su piso.")
         end
-        if AU.arregladas and AU.arregladas > 0 then
+        local rango = AU.conRango or 0
+        if (AU.conViejo or 0) > 0 then
             NS.decir("Arreglé las WeakAuras de clase: un solo número de tiempo en cada ícono (el de OmniCC) y el maná en K.")
+        end
+        if rango > 0 then
+            NS.decir("Las WeakAuras de clase ahora ponen en rojo lo que tiene el objetivo fuera de rango (como Mis CDs y las barras).")
         end
         return
     end

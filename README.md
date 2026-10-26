@@ -22,7 +22,7 @@ A los pocos segundos se abre "Modos - primeros pasos". De arriba a abajo:
 2. **Modo:** tocá PvE o PvP, el modo en que estás ahora.
 3. **Barras:** con Bartender o con las de Blizzard, a la vista o escondidas.
 4. **Rol en PvE:** tank, DPS o heal (uno por talento).
-5. **WeakAuras:** se instalan solas con cada personaje, también la de su clase (las 10 clases). No hay que importar nada. Si borrás alguna: `/modos auras reinstalar`.
+5. **WeakAuras:** se instalan solas con cada personaje, también la de su clase (las 10 clases). No hay que importar nada. Si borrás alguna: `/modos auras reinstalar`. En la de tu clase, como en Mis CDs, un hechizo se pone rojo si tu objetivo está fuera de su rango.
 
 Al final, Recargar. Listo.
 
