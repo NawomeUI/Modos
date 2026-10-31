@@ -49,7 +49,10 @@ local CONOCIDOS = {
     { sv = "EasyFramesDB", nombre = "EasyFrames", addon = "EasyFrames" },
     { sv = "DiminishingReturnsDB", nombre = "Diminishing Returns", addon = "DiminishingReturns" },
     { sv = "Omen3DB", nombre = "Omen", addon = "Omen" },
-    { sv = "Quartz3DB", nombre = "Quartz", addon = "Quartz" },
+    -- (1.0.42) sinCopiarModo: el perfil de un modo nunca se arma copiando el propio del
+    -- otro modo. Desde la 1.0.36 Quartz anda en los dos y en PvE tiene apagado tu casteo
+    -- (lo hace la WA de clase): copiado a PvP, quedabas sin ninguna barra de casteo.
+    { sv = "Quartz3DB", nombre = "Quartz", addon = "Quartz", sinCopiarModo = true },
     { sv = "ElvDB", nombre = "ElvUI", addon = "ElvUI" },
     { sv = "ElvPrivateDB", nombre = "ElvUI (privado)", addon = "ElvUI", privado = true },
 }
@@ -112,6 +115,20 @@ local function nombrePropio(m)
     return (UnitName("player") or "?").." - "..m..sufijo()
 end
 P.nombrePropio = nombrePropio
+
+-- (1.0.42) ¿es el perfil propio de este personaje de un modo que no es m?
+local function deOtroModo(nombre, m)
+    for _, o in ipairs({ "PvE", "PvP" }) do
+        if o ~= m and nombre == nombrePropio(o) then return true end
+    end
+    return false
+end
+-- los addons que no copian el perfil del otro modo (CONOCIDOS con sinCopiarModo)
+local function sinCopiarModo(sv)
+    for _, c in ipairs(CONOCIDOS) do if c.sv == sv then return c.sinCopiarModo and true or false end end
+    return false
+end
+P.deOtroModo = deOtroModo
 
 -- la parte privada de ElvUI es por personaje: "Bypass - Andes - PvE"
 local function nombrePrivado(m)
@@ -443,7 +460,9 @@ function P.aplicar(nuevo, desde)
             if objetivo ~= ahora then
                 local ok, err = pcall(function()
                     db:SetProfile(objetivo)
-                    if crear and not deCero() then db:CopyProfile(ahora) end
+                    if crear and not deCero() and not (c.sinCopiarModo and deOtroModo(ahora, nuevo)) then
+                        db:CopyProfile(ahora)
+                    end
                 end)
                 if ok then
                     e[nuevo] = objetivo
@@ -488,7 +507,8 @@ local function propio(sv, m)
     svt.profiles = svt.profiles or {}
     local actual = e[m] or db:GetCurrentProfile()
     local n = nombrePropio(m)
-    if actual ~= n and not svt.profiles[n] and not deCero() then
+    if actual ~= n and not svt.profiles[n] and not deCero()
+       and not (sinCopiarModo(sv) and deOtroModo(actual, m)) then
         svt.profiles[n] = copiaProfunda(svt.profiles[actual] or {})
         for _, t in pairs(svt.namespaces or {}) do
             if type(t) == "table" and t.profiles and t.profiles[actual] then
@@ -501,6 +521,23 @@ local function propio(sv, m)
     svt.profileKeys[clave] = n
     svt.profiles[n] = svt.profiles[n] or {}
     return db, n
+end
+
+-- escribe la parte t de un preset (perfil y namespaces) en el perfil n de db
+local function mezclarSV(db, n, t)
+    local pr = NS.presets
+    db.sv.profiles[n] = db.sv.profiles[n] or {}
+    if t.perfil then pr.mezclar(db.sv.profiles[n], t.perfil) end
+    if t.ns then
+        db.sv.namespaces = db.sv.namespaces or {}
+        for ns, v in pairs(t.ns) do
+            db.sv.namespaces[ns] = db.sv.namespaces[ns] or {}
+            local x = db.sv.namespaces[ns]
+            x.profiles = x.profiles or {}
+            x.profiles[n] = x.profiles[n] or {}
+            pr.mezclar(x.profiles[n], v)
+        end
+    end
 end
 
 -- Los otros addons con AceDB del preset (Gladius, Quartz...): se ponen si están
@@ -521,17 +558,7 @@ function P.ponerPendientes(m, hecho)
             entrada(sv)
             local db, n = propio(sv, m)
             if db then
-                if t.perfil then pr.mezclar(db.sv.profiles[n], t.perfil) end
-                if t.ns then
-                    db.sv.namespaces = db.sv.namespaces or {}
-                    for ns, v in pairs(t.ns) do
-                        db.sv.namespaces[ns] = db.sv.namespaces[ns] or {}
-                        local x = db.sv.namespaces[ns]
-                        x.profiles = x.profiles or {}
-                        x.profiles[n] = x.profiles[n] or {}
-                        pr.mezclar(x.profiles[n], v)
-                    end
-                end
+                mezclarSV(db, n, t)
                 pend[sv] = nil
                 hecho[#hecho + 1] = t.addon
             end
@@ -944,6 +971,32 @@ function P.ponerParte(m, x, hecho, movidos)
         pj.presetPend = pj.presetPend or {}
         pj.presetPend[m] = pj.presetPend[m] or {}
         pj.presetPend[m][x.sv] = true            -- lo pone ponerPendientes, con recarga
+        return true
+    elseif x.quartzPvP then
+        -- (1.0.42) el perfil de Quartz de PvP copiado del de PvE (tu casteo apagado, el
+        -- objetivo y el foco donde van en PvE): se vuelve a armar de fábrica con lo de PvP
+        local t = p.sv and p.sv.Quartz3DB
+        local e = datos().Quartz3DB
+        if not t or (e and not e.sigue) then return true end
+        local db = baseDe("Quartz3DB")
+        if not db then
+            return not (NS.addons and NS.addons.instalado("Quartz") and not apagadoEn("Quartz", m))
+        end
+        local n = (e and e[m]) or nombrePropio(m)
+        local svt = db.sv
+        local perfil = svt.profiles and svt.profiles[n]
+        if not (type(perfil) == "table" and type(perfil.modules) == "table" and perfil.modules.Player == false) then
+            return true                                   -- no es el copiado: no se toca
+        end
+        -- se vacía en el lugar (si es el perfil en uso, Quartz sigue con la misma tabla)
+        for k in pairs(perfil) do perfil[k] = nil end
+        for _, ns in pairs(svt.namespaces or {}) do
+            local np = type(ns) == "table" and ns.profiles and ns.profiles[n]
+            if type(np) == "table" then for k in pairs(np) do np[k] = nil end end
+        end
+        mezclarSV(db, n, t)
+        NS.decir("Quartz en PvP había quedado con lo de PvE (sin tu barra de casteo): lo volví a armar.")
+        anotar(hecho, "Quartz")
         return true
     elseif x.placas then
         local np = p.ElvDB and p.ElvDB.nameplates and p.ElvDB.nameplates.units

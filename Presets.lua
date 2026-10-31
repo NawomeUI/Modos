@@ -329,7 +329,9 @@ PR.PvP = {
         -- (11/10) en el lugar de su cuenta principal (Bypass): centrado, un poco
         -- más arriba. La pantalla de su cliente mide 1920 x 1080 unidades.
         -- (0.9.7) sin el módulo Buff (barras de buffs del objetivo y el foco): lo pidió
-        Quartz3DB = { addon = "Quartz", perfil = { modules = { Focus = false, Buff = false },
+        -- (1.0.42) tu casteo prendido a propósito: si el perfil viniera del de PvE (donde
+        -- está apagado porque lo hace la WA de clase) igual queda prendido
+        Quartz3DB = { addon = "Quartz", perfil = { modules = { Player = true, Focus = false, Buff = false },
                       backgroundcolor = { 0, 0, 0 }, backgroundalpha = 1 }, ns = {
             Player = { x = centrado(843), y = 173 },
         } },
@@ -463,6 +465,8 @@ PR.PARTES = {
     -- casteos de ElvUI, y Quartz en PvE (el objetivo y el foco)
     { id = "retratos", v = 1, modos = { PvE = true }, elv = "retratos" },
     { id = "quartz", v = 1, modos = { PvE = true }, sv = "Quartz3DB" },
+    -- (1.0.42) Quartz de PvP que quedó copiado del de PvE (sin tu barra de casteo)
+    { id = "quartzpvp", v = 1, modos = { PvP = true }, quartzPvP = true },
 }
 -- (1.0.24) MinimapButtonFrame como lo puso él: los botones en una sola columna
 PR.MBF = { columns_or_rows = 1, sort_by_rows = false }
