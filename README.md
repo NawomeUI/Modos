@@ -28,6 +28,8 @@ Al final, Recargar. Listo.
 
 Después cambiás de modo con la barrita de Modos o con un bind en Key Bindings, sección Modos.
 
+Cada modo guarda tus binds, tus barras y tus macros de personaje (hasta 18 por modo). Las macros de la cuenta no se tocan nunca.
+
 ### Barras escondidas
 
 Con las barras escondidas (Bartender o Blizzard) queda una a la vista en el borde derecho para profesiones, monturas y mascotas. Con Bartender es la 2 (ninguna postura la cambia) y las escondidas quedan juntas a su izquierda. Con las de Blizzard es la de la derecha del todo. Las escondidas no aparecen ni con el mouse: para verlas, `/modos barras ver` o el botón Barras de la ventana de Modos.
@@ -56,6 +58,7 @@ Si tus barras están escondidas, `/modos barras ver` las pone todas a la vista (
 | `/modos addons` | Qué addons van en cada modo |
 | `/modos auras` | Qué WeakAuras van con cada modo |
 | `/modos auras reinstalar` | Vuelve a poner las WeakAuras que borraste |
+| `/modos guardar` | Guarda ya lo de ahora (binds, barras y macros) en el modo en uso. Lo de antes queda como versión anterior |
 | `/modos escala` | Deja libre la escala de la interfaz (Modos usa 1080 de alto) |
 | `/tabpvp` | En arena y BG, Tab marca solo jugadores (prendido de fábrica) |
 

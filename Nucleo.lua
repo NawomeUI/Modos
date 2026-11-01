@@ -28,7 +28,7 @@
 local ADDON, NS = ...
 NS = NS or {}
 
-NS.VERSION = "1.0.42"
+NS.VERSION = "1.0.43"
 NS.MODOS = { "PvE", "PvP" }
 
 local DESDE_POSESION, HASTA_POSESION, ULTIMO = 121, 132, 144
@@ -691,6 +691,112 @@ local function diferenciaBinds(vivos, guardados, faltan)
     return n
 end
 
+-- ------------------------------------------------------------ macros
+-- (1.0.43) Cada modo guarda las macros de personaje (las de abajo, del 37 al
+-- 54) y al cambiar de modo se ponen las del modo nuevo, antes que los binds y
+-- las barras (las barras buscan las macros por nombre y texto). Así cada modo
+-- puede tener hasta 18 macros propias. Un modo guardado antes de 1.0.43 no
+-- tiene macros: la primera vez se queda con las de ahora.
+-- Las macros de la cuenta (1 a 36) nunca se tocan: ni se crean, ni se cambian,
+-- ni se borran. Al terminar se comparan con como estaban, por las dudas.
+local MACROS_CUENTA, MACROS_PJ = 36, 18
+
+local function leerMacros()
+    local l = {}
+    local _, nPj = GetNumMacros()
+    for j = 1, (nPj or 0) do
+        local n, icono, cuerpo = GetMacroInfo(MACROS_CUENTA + j)
+        if n then l[#l + 1] = { n = n, i = icono, b = cuerpo or "" } end
+    end
+    return l
+end
+NS.leerMacros = leerMacros
+
+-- las macros de la cuenta como un texto, para ver que no cambiaron
+local function fotoCuenta()
+    local t = {}
+    local nCuenta = GetNumMacros() or 0
+    for i = 1, nCuenta do
+        local n, icono, cuerpo = GetMacroInfo(i)
+        t[#t + 1] = tostring(n).."\1"..tostring(icono).."\1"..tostring(cuerpo)
+    end
+    return table.concat(t, "\2")
+end
+NS.fotoMacrosCuenta = fotoCuenta
+
+-- CreateMacro pide el número de ícono, no la ruta
+local iconos
+local function numeroIcono(textura)
+    if type(textura) ~= "string" then return 1 end
+    if not iconos then
+        iconos = {}
+        for i = 1, ((GetNumMacroIcons and GetNumMacroIcons()) or 0) do
+            local tx = GetMacroIconInfo(i)
+            if tx and not iconos[tx:lower()] then iconos[tx:lower()] = i end
+        end
+    end
+    local t = textura:lower()
+    return iconos[t] or iconos["interface\\icons\\"..t] or 1
+end
+
+local function claveMacro(m)
+    return tostring(m.n).."\1"..tostring(m.b or "").."\1"..tostring(m.i and m.i:lower() or "")
+end
+
+-- deja las macros de personaje como dice lista (sin importar el orden: el
+-- juego las ordena solo). Las que ya están igual no se tocan, las que sobran
+-- se borran y las que faltan se crean. Devuelve cuántas cambiaron.
+local function ponerMacros(lista)
+    if type(lista) ~= "table" then return 0 end
+    if #lista > MACROS_PJ then error("son "..#lista.." macros y entran "..MACROS_PJ) end
+    local antes = fotoCuenta()
+    local pedidas = {}
+    for _, m in ipairs(lista) do
+        local k = claveMacro(m)
+        pedidas[k] = (pedidas[k] or 0) + 1
+    end
+    -- 1) las que ya están se quedan, las demás se borran de abajo para arriba
+    --    (así no se corren los números de las que faltan revisar)
+    local _, nPj = GetNumMacros()
+    local borrar = {}
+    for j = 1, (nPj or 0) do
+        local idx = MACROS_CUENTA + j
+        local n, icono, cuerpo = GetMacroInfo(idx)
+        local k = claveMacro({ n = n, i = icono, b = cuerpo or "" })
+        if pedidas[k] and pedidas[k] > 0 then
+            pedidas[k] = pedidas[k] - 1
+        else
+            borrar[#borrar + 1] = idx
+        end
+    end
+    local cambios = 0
+    for x = #borrar, 1, -1 do
+        local idx = borrar[x]
+        if idx > MACROS_CUENTA then DeleteMacro(idx); cambios = cambios + 1 end
+    end
+    -- 2) las que faltan se crean como macros de personaje
+    for _, m in ipairs(lista) do
+        local k = claveMacro(m)
+        if pedidas[k] and pedidas[k] > 0 then
+            pedidas[k] = pedidas[k] - 1
+            local _, n2 = GetNumMacros()
+            if (n2 or 0) >= MACROS_PJ then error("no entran más macros de personaje") end
+            local idx = CreateMacro(m.n, numeroIcono(m.i), m.b or "", true)
+            if idx and idx <= MACROS_CUENTA then
+                -- no debería pasar nunca: se saca y se corta todo
+                DeleteMacro(idx)
+                error("el juego creó la macro "..tostring(m.n).." en la cuenta")
+            end
+            cambios = cambios + 1
+        end
+    end
+    if fotoCuenta() ~= antes then
+        decir("|cffff5555Ojo:|r las macros de la cuenta no quedaron como estaban. Avisame, que esto no tendría que pasar.")
+    end
+    return cambios
+end
+NS.ponerMacros = ponerMacros
+
 -- ------------------------------------------------------------ avisos
 local ESPERA = "Esperá un segundo: todavía estoy acomodando las barras."
 
@@ -768,10 +874,11 @@ local function avisarTeclas(f)
 end
 
 -- "14 botones y 22 teclas", "1 botón", "3 teclas", "14 botones, 2 teclas y 7 perfiles"
-local function cuantos(botones, teclasN, perfilesN)
+local function cuantos(botones, teclasN, perfilesN, macrosN)
     local p = {}
     if botones > 0 then p[#p + 1] = botones..(botones == 1 and " botón" or " botones") end
     if teclasN > 0 then p[#p + 1] = teclasN..(teclasN == 1 and " tecla" or " teclas") end
+    if (macrosN or 0) > 0 then p[#p + 1] = macrosN..(macrosN == 1 and " macro" or " macros") end
     if (perfilesN or 0) > 0 then p[#p + 1] = perfilesN..(perfilesN == 1 and " perfil" or " perfiles") end
     if #p <= 1 then return p[1] or "" end
     return table.concat(p, ", ", 1, #p - 1).." y "..p[#p]
@@ -818,7 +925,7 @@ local function adoptar(m)
     local pj = NS.pj
     local g = grupoActual()
     local md = modo(m)
-    md.actual = { binds = leerBinds(), barras = { [g] = leerBarras() }, cuando = time() }
+    md.actual = { binds = leerBinds(), barras = { [g] = leerBarras() }, macros = leerMacros(), cuando = time() }
     pj.activo, pj.grupo = m, g
     pj.enGrupo[g] = m
     if NS.perfiles then NS.perfiles.adoptar(m) end
@@ -916,6 +1023,7 @@ cambiar = function(nuevo, origen)
     --    barras de este talento son del modo que figura como dueño
     respaldar(mv)
     guardarBinds(mv.actual)
+    mv.actual.macros = leerMacros()
     mv.actual.cuando = time()
     local dueno = pj.enGrupo[g] or viejo
     local mdu = modo(dueno)
@@ -934,10 +1042,28 @@ cambiar = function(nuevo, origen)
         copia = viejo
     end
 
+    -- (1.0.43) 2b) macros de personaje del modo nuevo, antes que binds y barras.
+    --    Un modo sin macros guardadas (de antes de 1.0.43) se queda con las de
+    --    ahora. Si algo falla, vuelven las de antes y seguís en el modo que tenías.
+    local macrosN = 0
+    if md.actual.macros then
+        local okM, rM = pcall(ponerMacros, md.actual.macros)
+        if not okM then
+            pcall(ponerMacros, mv.actual.macros)
+            decir("No pude pasar a "..nuevo..": falló una macro ("..tostring(rM).."). Quedó todo como estaba, seguís en "..viejo..".")
+            refrescar()
+            return
+        end
+        macrosN = rM
+    else
+        md.actual.macros = leerMacros()
+    end
+
     -- 3) binds del modo nuevo. Si algo explota, vuelven como estaban y no se
     --    cambia nada más: seguís en el modo que tenías.
     local teclasN, errB, fallidos = ponerBinds(md.actual.binds)
     if errB then
+        if macrosN > 0 then pcall(ponerMacros, mv.actual.macros) end
         decir("No pude pasar a "..nuevo..": falló un bind ("..errB.."). Quedó todo como estaba, seguís en "..viejo..".")
         refrescar()
         return
@@ -955,6 +1081,7 @@ cambiar = function(nuevo, origen)
     local function alTerminar(botonesN, faltan, errBar)
         if errBar then
             pj.activo = viejo
+            if macrosN > 0 then pcall(ponerMacros, mv.actual.macros) end
             local _, _, f2 = ponerBinds(mv.actual.binds)
             mv.actual.bindsFaltan = f2
             if NS.perfiles then NS.perfiles.aplicar(viejo) end
@@ -965,17 +1092,17 @@ cambiar = function(nuevo, origen)
         end
         local l = nombres(faltan)
         pj.ultimo = { de = viejo, a = nuevo, cuando = time(), origen = origen, copia = copia,
-                      botones = botonesN, teclas = teclasN, faltan = l, perfiles = perfilesN }
+                      botones = botonesN, teclas = teclasN, faltan = l, perfiles = perfilesN, macros = macrosN }
         local pre = ""
         if origen == "talento" then pre = "Cambiaste de talento. "
         elseif origen == "inicio" then pre = "Estás en el "..g.."° talento. "
         elseif origen == "combate" then pre = "Saliste de combate. " end
         if copia then
             decir(pre..nuevo.." arrancó como copia de "..copia..". Acomodá binds y barras a gusto: se guardan solos cuando vuelvas a "..copia..".")
-        elseif botonesN == 0 and teclasN == 0 and perfilesN == 0 then
+        elseif botonesN == 0 and teclasN == 0 and perfilesN == 0 and macrosN == 0 then
             decir(pre.."Modo "..nuevo..". Ya estaba todo igual.")
         else
-            decir(pre.."Modo "..nuevo..": cambiaron "..cuantos(botonesN, teclasN, perfilesN)..".")
+            decir(pre.."Modo "..nuevo..": cambiaron "..cuantos(botonesN, teclasN, perfilesN, macrosN)..".")
         end
         if rp then NS.perfiles.avisar(rp, nuevo, viejo) end
         avisarFaltan(l)
@@ -1290,10 +1417,23 @@ function NS.deshacer(m)
     local vivo = copiar(md.actual) or {}
     guardarBinds(vivo)
     guardarBarras(vivo, g)
+    vivo.macros = leerMacros()
     vivo.cuando = time()
     local ant = md.respaldo
+    local macrosN = 0
+    if ant.macros then
+        local okM, rM = pcall(ponerMacros, ant.macros)
+        if not okM then
+            pcall(ponerMacros, vivo.macros)
+            decir("No pude volver a la versión anterior: falló una macro ("..tostring(rM).."). Quedó todo como estaba.")
+            refrescar()
+            return
+        end
+        macrosN = rM
+    end
     local teclasN, errB, fallidos = ponerBinds(ant.binds)
     if errB then
+        if macrosN > 0 then pcall(ponerMacros, vivo.macros) end
         decir("No pude volver a la versión anterior: falló un bind ("..errB.."). Quedó todo como estaba.")
         refrescar()
         return
@@ -1305,6 +1445,7 @@ function NS.deshacer(m)
     ponerBarrasDe(m, g, function(botonesN, faltan, errBar)
         if errBar then
             md.actual, md.respaldo = vivo, ant
+            if macrosN > 0 then pcall(ponerMacros, vivo.macros) end
             local _, _, f2 = ponerBinds(vivo.binds)
             vivo.bindsFaltan = f2
             ponerBarrasDe(m, g, function()
@@ -1313,8 +1454,8 @@ function NS.deshacer(m)
             return
         end
         local l = nombres(faltan)
-        pj.ultimo = { de = m, a = m, cuando = time(), origen = "anterior", botones = botonesN, teclas = teclasN, faltan = l }
-        local c = cuantos(botonesN, teclasN)
+        pj.ultimo = { de = m, a = m, cuando = time(), origen = "anterior", botones = botonesN, teclas = teclasN, faltan = l, macros = macrosN }
+        local c = cuantos(botonesN, teclasN, 0, macrosN)
         decir(m..": volviste a la versión de "..cuando(ant.cuando)..". "
             ..(c ~= "" and ("Cambiaron "..c..". ") or "Ya estaba todo igual. ")
             .."Tocá Versión anterior de nuevo para deshacer.")
@@ -1337,6 +1478,42 @@ function NS.vincular(m, t)
     refrescar()
 end
 
+-- (1.0.43) guarda ya lo que tenés en el modo en uso (binds, barras de este
+-- talento y macros), sin esperar a cambiar de modo. Lo que estaba anotado como
+-- faltante se olvida: queda exactamente lo de ahora. Lo de antes queda como
+-- Versión anterior. true si guardó; si no, false y el motivo.
+function NS.guardarAhora()
+    local pj = NS.pj
+    if not (pj and pj.activo) then return false, "Todavía no elegiste un modo: tocá PvE o PvP." end
+    if NS.preguntando or NS.recargando then return false, ESPERA end
+    local ok, motivo = sePuede()
+    if not ok then return false, (motivo == "combate") and "En combate no." or motivo end
+    local g = grupoActual()
+    if pj.aMedias[g] or (pj.enGrupo[g] or pj.activo) ~= pj.activo then return false, ESPERA end
+    local md = modo(pj.activo)
+    respaldar(md)
+    md.actual = md.actual or {}
+    local v = md.actual
+    v.binds, v.bindsFaltan = leerBinds(), nil
+    v.barras = v.barras or {}
+    v.barras[g] = leerBarras()
+    if v.faltan then v.faltan[g] = nil end
+    v.macros = leerMacros()
+    v.cuando = time()
+    pj.enGrupo[g] = pj.activo
+    refrescar()
+    return true
+end
+
+-- (1.0.43) para otros addons (por ejemplo uno que arma las teclas de una clase):
+-- en qué modo estás, si Modos está ocupado, y guardar ya en el modo en uso
+ModosAPI = {
+    version = NS.VERSION,
+    activo = function() return NS.pj and NS.pj.activo end,
+    ocupado = function() return (NS.ocupado or NS.preguntando or NS.recargando) and true or false end,
+    guardarAhora = function() return NS.guardarAhora() end,
+}
+
 function NS.info(m)
     local md = modo(m)
     local v = md.actual
@@ -1350,6 +1527,7 @@ function NS.info(m)
         guardado = v and v.cuando,
         botones = v and v.barras and v.barras[g] and contar(v.barras[g]) or nil,
         teclas = v and v.binds and contar(v.binds) or nil,
+        macros = v and v.macros and #v.macros or nil,
         faltan = contar(f) + contar(fb),
         nombresFaltan = lista,
         talento = md.talento,
@@ -1366,6 +1544,7 @@ function NS.imprimirEstado()
         local i = NS.info(m)
         if i.guardado then
             decir(m..": guardado "..cuando(i.guardado)..", "..(i.botones or 0).." botones, "..(i.teclas or 0).." teclas"
+                ..(i.macros and (", "..i.macros.." macros") or "")
                 ..(i.faltan > 0 and (", faltan "..i.faltan) or "")
                 ..(i.talento and (", atado al "..i.talento.."° talento") or ""))
         else
@@ -1477,6 +1656,14 @@ SlashCmdList["MODOS"] = function(msg)
     elseif cmd == "barrita" then
         if NS.alternarBarrita then NS.alternarBarrita() end
     elseif cmd == "estado" then NS.imprimirEstado()
+    elseif cmd == "guardar" then
+        -- (1.0.43) guarda ya lo de ahora en el modo en uso
+        local ok, motivo = NS.guardarAhora()
+        if ok then
+            decir("Listo: lo de ahora quedó guardado como "..NS.pj.activo.." (binds, barras y macros). Lo de antes quedó como Versión anterior.")
+        else
+            decir(motivo)
+        end
     elseif cmd == "preset" then
         -- vuelve a poner la UI armada del modo en uso
         if not NS.pj.activo or not (NS.presets and NS.presets[NS.pj.activo]) then
@@ -1554,7 +1741,8 @@ SlashCmdList["MODOS"] = function(msg)
         end
     elseif cmd == "ayuda" then
         decir("/modos abre la ventana. /modos pve y /modos pvp cambian de modo. /modos alternar pasa al otro.")
-        decir("/modos anterior vuelve a la versión anterior del modo en uso. /modos barrita la muestra u oculta. /modos estado resume lo guardado.")
+        decir("/modos anterior vuelve a la versión anterior del modo en uso. /modos barrita la muestra u oculta. /modos estado resume lo guardado. /modos guardar guarda ya lo de ahora en el modo en uso.")
+        decir("Cada modo tiene sus propias macros de personaje (hasta 18): al cambiar de modo se ponen las del otro. Las macros de la cuenta no se tocan nunca.")
         decir("/modos cds elige qué hechizos y abalorios ves al medio (aura Mis CDs). /modos cds guardar <nombre> y /modos cds cargar <nombre> guardan y ponen perfiles de Mis CDs (como ABS). /modos addons elige qué addons van en cada modo. /modos barras elige barras con Bartender o de Blizzard, a la vista o escondidas. /modos barras ver pone todas a la vista para poner binds (/modos barras esconder las deja como estaban). /modos instalar abre el asistente de primeros pasos (addons, modo, barras y rol). /modos auras muestra qué WeakAuras van con cada modo (se instalan solas, también la de tu clase). /modos auras reinstalar vuelve a poner las que borraste. /modos escala deja libre (o vuelve a fijar) la escala de la interfaz. /modos rol tank, /modos rol dps o /modos rol heal elige el rol de PvE del talento en uso (sin nada: pregunta).")
         decir("/modos listo muestra lo que te falta antes del pull (frasco, comida, buffs, lo de tu clase, piedra, reparar). Sale solo en mazmorras y bandas al entrar, con la revisión de listos y con la cuenta del pull de DBM.")
         decir("/modos preset vuelve a poner encima la UI armada del modo en uso. /modos reiniciar la arma desde cero: los perfiles de Modos de ese modo vuelven a como vienen y se pone todo de nuevo (pregunta antes).")
