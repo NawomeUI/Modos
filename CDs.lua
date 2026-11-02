@@ -237,8 +237,10 @@ end
 -- tenés maná y si no se puede usar todavía (Kill Shot o Execute con el objetivo arriba
 -- del 20%, otra postura, Revenge sin bloquear...). Lo usan las auras de Mis CDs para el
 -- color del ícono. x: uno de la lista de ModosMisCDs. Devuelve lejos, sinMana, inusable.
+-- (1.0.46) y reactivo: es de los que solo se usan en ciertos momentos (Execute, Kill
+-- Shot, Overpower...; Reactivos.lua) y ahora se puede usar (Mis CDs lo hace brillar)
 function ModosMisCDsUso(x)
-    if type(x) ~= "table" then return false, false, false end
+    if type(x) ~= "table" then return false, false, false, false end
     local hayObjetivo = UnitExists and UnitExists("target")
     local lejos, sinMana, usable = false, false, true
     if x.tipo == "ranura" then
@@ -254,7 +256,8 @@ function ModosMisCDsUso(x)
         end
         if hayObjetivo and IsSpellInRange then lejos = IsSpellInRange(x.indice, libro, "target") == 0 end
     end
-    return lejos and true or false, sinMana, (not usable) and not sinMana
+    local reactivo = usable and x.tipo == "hechizo" and NS.reactivos and NS.reactivos.es(x.nombre) or false
+    return lejos and true or false, sinMana, (not usable) and not sinMana, reactivo and true or false
 end
 
 -- (1.0.32) la recarga y el ícono de uno de la lista, sea hechizo tuyo, de la
